@@ -74,3 +74,4 @@ In a sprite with 3 layer groups, and 4 layers inside each group, the script will
 
 - Web: [gaspi.games](http://gaspi.games/)
 - Twitter: [@_Gaspi](https://twitter.com/@_Gaspi)
+- Aseprite Community: [Gaspi](https://community.aseprite.org/u/Gaspi/summary)
