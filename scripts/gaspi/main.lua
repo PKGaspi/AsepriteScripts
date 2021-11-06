@@ -15,27 +15,10 @@ Made by Gaspi.
 
 -- Check if this is being run directly.
 if debug.getinfo(2) == nil then
-   print("Don't run this directly!")
-   return
-end
-
--- Identify current sprite.
-Sprite = app.activeSprite
-if Sprite == nil then
-   -- Show error, no sprite active.
-   local dlg = Dialog("Error")
-   dlg:label{
-      id = 0,
-      text = "No sprite is currently active. Please, open a sprite first and run again."
-   }
-   dlg:newrow()
-   dlg:button{id = 1, text = "Close", onclick = function() dlg:close() end}
+   local dlg = ErrorDialog("Don't run this directly!")
    dlg:show()
    return 1
 end
--- Identify operative system.
-Sep = string.sub(app.activeSprite.filename, 1, 1) == "/" and "/" or "\\"
-
 
 -- Auxiliary functions
 
@@ -47,17 +30,17 @@ function Dirname(str)
    return str:match("(.*" .. Sep .. ")")
 end
 
--- Return the name of a file given its full path.
---[[
-   Sources:
-   - https://codereview.stackexchange.com/questions/90177/get-file-name-with-extension-and-get-only-extension
-   - https://stackoverflow.com/questions/18884396/extracting-filename-only-with-pattern-matching
---]]
+-- Return the name of a file given its full path..
+-- Source: https://codereview.stackexchange.com/questions/90177/get-file-name-with-extension-and-get-only-extension
 function Basename(str)
-   str = str:match("^.+" .. Sep .. "(.+)$")
-   return str:match("(.+)%..+")
+   return str:match("^.*" .. Sep .. "(.+)$") or str
 end
 
+-- Return the name of a file excluding the extension, this being, everything after the dot.
+-- Source: https://stackoverflow.com/questions/18884396/extracting-filename-only-with-pattern-matching
+function RemoveExtension(str)
+   return str:match("(.+)%..+")
+end
 
 -- Sprite handling.
 
@@ -88,5 +71,39 @@ function RestoreLayersVisibility(sprite, data)
       end
    end
 end
+
+-- Dialog
+function ErrorDialog(msg)
+   local dlg = Dialog("Error")
+   dlg:label{
+      id = "msg",
+      text = msg
+   }
+   dlg:newrow()
+   dlg:button{id = "close", text = "Close", onclick = function() dlg:close() end }
+   return dlg
+end
+
+-- Other
+
+function CopyTable(original)
+   local copy = {}
+   for i, value in ipairs(original) do
+       copy[i] = value
+   end
+   return copy
+end
+
+-- Current sprite.
+Sprite = app.activeSprite
+if Sprite == nil then
+   -- Show error, no sprite active.
+   local dlg = ErrorDialog("No sprite is currently active. Please, open a sprite first and run again.")
+   dlg:show()
+   return 1
+end
+
+-- Identify operative system.
+Sep = string.sub(app.activeSprite.filename, 1, 1) == "/" and "/" or "\\"
 
 return 0

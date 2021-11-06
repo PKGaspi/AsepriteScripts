@@ -8,6 +8,7 @@ Made by Gaspi.
    - Twitter: @_Gaspi
 --]]
 
+
 -- Import main.
 local err = dofile("main.lua")
 if err ~= 0 then return err end
@@ -34,5 +35,5 @@ local suffix = #Sprite.frames > 1 and "_" or ""
 
 -- Finally, perform everything.
 local layerVisibilityData = HideLayers(Sprite)
-exportLayers(Sprite, Sprite, Dirname(Sprite.filename) .. Basename(Sprite.filename), suffix)
+exportLayers(Sprite, Sprite, RemoveExtension(Sprite.filename), suffix)
 RestoreLayersVisibility(Sprite, layerVisibilityData)
