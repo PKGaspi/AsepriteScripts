@@ -15,7 +15,7 @@ Made by Gaspi.
 
 -- Check if this is being run directly.
 if debug.getinfo(2) == nil then
-   local dlg = ErrorDialog("Don't run this directly!")
+   local dlg = MsgDialog("Error", "Don't run this directly!")
    dlg:show()
    return 1
 end
@@ -73,8 +73,8 @@ function RestoreLayersVisibility(sprite, data)
 end
 
 -- Dialog
-function ErrorDialog(msg)
-   local dlg = Dialog("Error")
+function MsgDialog(title, msg)
+   local dlg = Dialog(title)
    dlg:label{
       id = "msg",
       text = msg
@@ -98,7 +98,7 @@ end
 Sprite = app.activeSprite
 if Sprite == nil then
    -- Show error, no sprite active.
-   local dlg = ErrorDialog("No sprite is currently active. Please, open a sprite first and run again.")
+   local dlg = MsgDialog("Error", "No sprite is currently active. Please, open a sprite first and run again.")
    dlg:show()
    return 1
 end
