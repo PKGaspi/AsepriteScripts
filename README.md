@@ -25,12 +25,15 @@ trickery involved causes the sprite to appear as modified.
 
 ### Export Layers
 
-An easy and fast way of exporting every layer of a sprite into individual sprites.
+Have your sprite with multiple layers you want to be exported individually.
+Execute the script and your layers will export in separate files. Hidden
+layers are also exported.
 
 **Usage:**  
 
-Export your sprite layers in separate files. Hidden layers are also exported.
-
+Have your sprite with multiple layers you want to be exported individually.
+Execute the script and your layers will export in separate files. Hidden
+layers are also exported.
 
 **Options:**  
 
@@ -54,6 +57,8 @@ With default options:
 - A layer with name `layer1` will be exported as `layer1.png`.
 - A layer with name `layer2` inside a group with name `group1` will be exported
   as `group1/layer2.png`.
+- A layer with name `layer3` inside a group with name `group2`, which is inside
+`group1`, will be exported as `group1/group2/layer3.png`.
 
 ### Export Slices
 
@@ -101,8 +106,8 @@ inside each group will be exported at a time. Commissioned by *AnomuraGame*.
 **Usage:**
 
 Keep your layers organized in groups. For every group there is, only one layer
-at a time will be exported, with one layer of every other group. All possible
-combinations will be exported.
+at a time will show in every exported file, and one layer of every other group.
+All possible combinations will be exported.
 
 Layers outside groups will be ignored. Nested groups are undefined behaviour.
 
