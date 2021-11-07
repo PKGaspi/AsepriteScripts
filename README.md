@@ -25,9 +25,7 @@ trickery involved causes the sprite to appear as modified.
 
 ### Export Layers
 
-Have your sprite with multiple layers you want to be exported individually.
-Execute the script and your layers will export in separate files. Hidden
-layers are also exported.
+An easy and fast way of exporting every layer of a sprite into individual sprites.
 
 **Usage:**  
 
