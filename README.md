@@ -39,9 +39,9 @@ layers are also exported.
   file, not a folder. This is because Aseprite's API doesn't support folder
   selection.
 - *File name*: The name of every exported file. The possible formatters are:
--- `{spritename}`: The name of the sprite to export.
--- `{layername}`: The name of the layer.
--- `{layergroups}`: The groups the layer is into.
+	- `{spritename}`: The name of the sprite to export.
+	- `{layername}`: The name of the layer.
+	- `{layergroups}`: The groups the layer is into.
 - *Group separator*: The character used to separate the group names in file name.
 - *Export format*: File format of exported files.
 - *Export scale*: The scale at which to export. The resolution of the file will
@@ -76,9 +76,9 @@ Data values. These values are used for the exported filename. You can use `/`
   file, not a folder. This is because Aseprite's API doesn't support folder
   selection.
 - *File name*: The name of every exported file. The possible formatters are:
--- `{spritename}`: The name of the sprite to export.
--- `{slicedata}`: The user data of the slice.
--- `{slicename}`: The name of the slice.
+	- `{spritename}`: The name of the sprite to export.
+	- `{slicedata}`: The user data of the slice.
+	- `{slicename}`: The name of the slice.
 - *Export format*: File format of exported files.
 - *Export scale*: The scale at which to export. The resolution of the file will
   be multiplied by this number. Useful for media sharing.
@@ -118,8 +118,8 @@ patient!
   file, not a folder. This is because Aseprite's API doesn't support folder
   selection.
 - *File name*: The name of every exported file. The possible formatters are:
--- `{spritename}`: The name of the sprite to export.
--- `{combination}`: The combination number.
+	- `{spritename}`: The name of the sprite to export.
+	- `{combination}`: The combination number.
 - *Export format*: File format of exported files.
 - *Export scale*: The scale at which to export. The resolution of the file will
   be multiplied by this number. Useful for media sharing.
