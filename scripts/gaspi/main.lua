@@ -15,7 +15,7 @@ Made by Gaspi.
 
 -- Check if this is being run directly.
 if debug.getinfo(2) == nil then
-   local dlg = MsgDialog("Error", "Don't run this directly!")
+   local dlg = MsgDialog("Error", "Don't run this script directly!")
    dlg:show()
    return 1
 end
@@ -104,6 +104,14 @@ if Sprite == nil then
 end
 
 -- Identify operative system.
-Sep = string.sub(app.activeSprite.filename, 1, 1) == "/" and "/" or "\\"
+Sep = string.sub(Sprite.filename, 1, 1) == "/" and "/" or "\\"
+
+
+if Dirname(Sprite.filename) == nil then
+   -- Error, can't identify OS when the sprite isn't saved somewhere.
+   local dlg = MsgDialog("Error", "Current sprite is not associated to a file. Please, save your sprite and run again.")
+   dlg:show()
+   return 1
+end
 
 return 0
