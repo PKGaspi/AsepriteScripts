@@ -102,7 +102,7 @@ for _, slice in ipairs(Sprite.slices) do
     end
 
     -- Create output dir in case it doesn't exist.
-    os.execute("mkdir " .. Dirname(output_path .. slice_filename))
+    os.execute("mkdir \"" .. Dirname(output_path .. slice_filename) .. "\"")
     slice_count[slice_id] = slice_count[slice_id] - 1
     Sprite:saveCopyAs(output_path .. slice_filename)
 end

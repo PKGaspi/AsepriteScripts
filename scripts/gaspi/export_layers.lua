@@ -15,24 +15,55 @@ if err ~= 0 then return err end
 -- Variable to keep track of the number of layers exported.
 local n_layers = 0
 -- Exports every layer individually.
-local function exportLayers(sprite, root_layer, filename, group_sep)
-   for _, layer in ipairs(root_layer.layers) do
-      local filename = filename
-      if layer.isGroup then
-         -- Recursive for groups.
-         filename = filename:gsub("{layergroups}", layer.name .. group_sep .. "{layergroups}")
-         exportLayers(sprite, layer, filename, group_sep)
-      else
-         -- Individual layer. Export it.
-         layer.isVisible = true
-         filename = filename:gsub("{layergroups}", "")
-         filename = filename:gsub("{layername}", layer.name)
-         os.execute("mkdir " .. Dirname(filename))
-         sprite:saveCopyAs(filename)
-         layer.isVisible = false
-         n_layers = n_layers + 1
-      end
-   end
+local function exportLayers(sprite, root_layer, filename, group_sep, spritesheet)
+    for _, layer in ipairs(root_layer.layers) do
+        local filename = filename
+        if layer.isGroup then
+            -- Recursive for groups.
+            filename = filename:gsub("{layergroups}",
+                                     layer.name .. group_sep .. "{layergroups}")
+            exportLayers(sprite, layer, filename, group_sep, spritesheet)
+        else
+            -- Individual layer. Export it.
+            layer.isVisible = true
+            filename = filename:gsub("{layergroups}", "")
+            filename = filename:gsub("{layername}", layer.name)
+            print(filename)
+            print(Dirname(filename))
+            os.execute("mkdir \"" .. Dirname(filename) .. "\"")
+            if spritesheet then
+                app.command.ExportSpriteSheet{
+                    ui=false,
+                    askOverwrite=false,
+                    type=SpriteSheetType.HORIZONTAL,
+                    columns=0,
+                    rows=0,
+                    width=0,
+                    height=0,
+                    bestFit=false,
+                    textureFilename=filename,
+                    dataFilename="",
+                    dataFormat=SpriteSheetDataFormat.JSON_HASH,
+                    borderPadding=0,
+                    shapePadding=0,
+                    innerPadding=0,
+                    trim=false,
+                    extrude=false,
+                    openGenerated=false,
+                    layer="",
+                    tag="",
+                    splitLayers=false,
+                    listLayers=layer,
+                    listTags=true,
+                    listSlices=true,
+                }
+            else
+                sprite:saveCopyAs(filename)
+            end
+            layer.isVisible = false
+            n_layers = n_layers + 1
+        end
+    end
 end
 
 -- Open main dialog.
@@ -61,6 +92,11 @@ dlg:combobox{
     options = {Sep, '-', '_'}
 }
 dlg:slider{id = 'scale', label = 'Export Scale:', min = 1, max = 10, value = 1}
+dlg:check{
+    id = "spritesheet",
+    label = "Export as spritesheet:",
+    selected = false
+}
 dlg:check{id = "save", label = "Save sprite:", selected = false}
 dlg:button{id = "ok", text = "Export"}
 dlg:button{id = "cancel", text = "Cancel"}
@@ -86,7 +122,7 @@ filename = filename:gsub("{groupseparator}", group_sep)
 -- Finally, perform everything.
 Sprite:resize(Sprite.width * dlg.data.scale, Sprite.height * dlg.data.scale)
 local layers_visibility_data = HideLayers(Sprite)
-exportLayers(Sprite, Sprite, output_path .. filename, group_sep)
+exportLayers(Sprite, Sprite, output_path .. filename, group_sep, dlg.data.spritesheet)
 RestoreLayersVisibility(Sprite, layers_visibility_data)
 Sprite:resize(Sprite.width / dlg.data.scale, Sprite.height / dlg.data.scale)
 

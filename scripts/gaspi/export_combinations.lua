@@ -22,7 +22,7 @@ local combination = 0
 
 local function exportCombinations(sprite, g, output_path)
     if #g == 0 then
-        os.execute("mkdir " .. Dirname(output_path))
+        os.execute("mkdir \"" .. Dirname(output_path) .. "\"")
         sprite:saveCopyAs(output_path:gsub("{combination}", combination))
         combination = combination + 1
         return
