@@ -28,8 +28,6 @@ local function exportLayers(sprite, root_layer, filename, group_sep, spritesheet
             layer.isVisible = true
             filename = filename:gsub("{layergroups}", "")
             filename = filename:gsub("{layername}", layer.name)
-            print(filename)
-            print(Dirname(filename))
             os.execute("mkdir \"" .. Dirname(filename) .. "\"")
             if spritesheet then
                 app.command.ExportSpriteSheet{
