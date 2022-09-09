@@ -20,9 +20,12 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
         local filename = filename
         if layer.isGroup then
             -- Recursive for groups.
+            local previousVisibility = layer.isVisible
+            layer.isVisible = true
             filename = filename:gsub("{layergroups}",
                                      layer.name .. group_sep .. "{layergroups}")
             exportLayers(sprite, layer, filename, group_sep, data)
+            layer.isVisible = previousVisibility
         else
             -- Individual layer. Export it.
             layer.isVisible = true
