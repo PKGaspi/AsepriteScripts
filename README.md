@@ -7,6 +7,11 @@ can ask me for a commission! Contact below.
 Please, take a look at the [repo wiki](https://github.com/PKGaspi/AsepriteScripts/wiki)
 to learn more about the scripts.
 
+## Disclaimer
+These scripts were last tested on Aseprite version v1.2.14. It happened before that
+an Aseprite update broke the functionality of these scripts. Please, backup your work 
+before use. If a script doesn't work, please open an issue.
+
 ## Installation
 
 1. Download or clone this repository.
@@ -33,7 +38,8 @@ trickery involved causes the sprite to appear as modified.
 
 
 ## About me
-
+Hey, I'm a Computer Science graduate fascinated by the videogame industry.
+Here are some of my links:
 - Web: [gaspi.games](http://gaspi.games/)
 - Twitter: [@_Gaspi](https://twitter.com/@_Gaspi)
 - Aseprite Community: [Gaspi](https://community.aseprite.org/u/Gaspi/summary)
