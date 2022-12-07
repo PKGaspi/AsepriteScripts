@@ -49,6 +49,7 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
                     shapePadding=0,
                     innerPadding=0,
                     trim=data.trim,
+                    mergeDuplicates=data.mergeDuplicates,
                     extrude=false,
                     openGenerated=false,
                     layer="",
@@ -102,11 +103,21 @@ dlg:check{
             id = "trim",
             visible = dlg.data.spritesheet
         }
+        dlg:modify{
+            id = "mergeDuplicates",
+            visible = dlg.data.spritesheet
+        }
     end
 }
 dlg:check{
     id = "trim",
     label = "Trim:",
+    selected = false,
+    visible = false
+}
+dlg:check{
+    id = "mergeDuplicates",
+    label = "Merge dublicates:",
     selected = false,
     visible = false
 }
