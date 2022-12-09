@@ -99,6 +99,7 @@ dlg:check{
     label = "Export as spritesheet:",
     selected = false,
     onclick = function()
+        -- Show this options only if spritesheet is checked.
         dlg:modify{
             id = "trim",
             visible = dlg.data.spritesheet
@@ -111,13 +112,13 @@ dlg:check{
 }
 dlg:check{
     id = "trim",
-    label = "Trim:",
+    label = "  Trim:",
     selected = false,
     visible = false
 }
 dlg:check{
     id = "mergeDuplicates",
-    label = "Merge duplicates:",
+    label = "  Merge duplicates:",
     selected = false,
     visible = false
 }
