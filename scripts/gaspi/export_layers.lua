@@ -30,7 +30,7 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
             -- Individual layer. Export it.
             layer.isVisible = true
             filename = filename:gsub("{layergroups}", "")
-            filename = filename:gsub("{layername}", layer.name)
+            filename = filename:gsub("{layername}", layer.name .. "_")
             os.execute("mkdir \"" .. Dirname(filename) .. "\"")
             if data.spritesheet then
                 app.command.ExportSpriteSheet{
