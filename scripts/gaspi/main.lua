@@ -13,13 +13,6 @@ Made by Gaspi.
 
 --]]
 
--- Check if this is being run directly.
-if debug.getinfo(2) == nil then
-   local dlg = MsgDialog("Error", "Don't run this script directly!")
-   dlg:show()
-   return 1
-end
-
 -- Auxiliary functions
 
 -- Path handling.
@@ -106,12 +99,26 @@ end
 -- Identify operative system.
 Sep = string.sub(Sprite.filename, 1, 1) == "/" and "/" or "\\"
 
-
 if Dirname(Sprite.filename) == nil then
    -- Error, can't identify OS when the sprite isn't saved somewhere.
    local dlg = MsgDialog("Error", "Current sprite is not associated to a file. Please, save your sprite and run again.")
    dlg:show()
    return 1
+end
+
+-- Check if this is being run directly.
+if debug.getinfo(2) == nil then
+   local dlg = Dialog("Gaspi scripts")
+   dlg:label{id = "msg", text = "What can I help you with?"}
+   dlg:newrow()
+   dlg:button{id = "layers", text = "Export layers", onclick = function() dofile("export_layers.lua") end}
+   dlg:newrow()
+   dlg:button{id = "slices", text = "Export slices", onclick = function() dofile("export_slices.lua") end}
+   dlg:newrow()
+   dlg:button{id = "combinations", text = "Export combinations", onclick = function() dofile("export_combinations.lua") end}
+   dlg:newrow()
+   dlg:button{id = "close", text = "Close", onclick = function() dlg:close() end }
+   dlg:show()
 end
 
 return 0
