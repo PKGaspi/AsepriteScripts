@@ -6,6 +6,8 @@ A script to save all different layers in different files.
 Made by Gaspi.
    - Itch.io: https://gaspi.itch.io/
    - Twitter: @_Gaspi
+Further Contributors:
+    - Levy E ("StoneLabs")
 --]]
 
 -- Import main.
@@ -33,10 +35,16 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
             filename = filename:gsub("{layername}", layer.name)
             os.execute("mkdir \"" .. Dirname(filename) .. "\"")
             if data.spritesheet then
+                local sheettype=SpriteSheetType.HORIZONTAL
+                if (data.tagsplit == "To Rows") then
+                    sheettype=SpriteSheetType.ROWS
+                elseif (data.tagsplit == "To Columns") then
+                    sheettype=SpriteSheetType.COLUMNS
+                end
                 app.command.ExportSpriteSheet{
                     ui=false,
                     askOverwrite=false,
-                    type=SpriteSheetType.HORIZONTAL,
+                    type=sheettype,
                     columns=0,
                     rows=0,
                     width=0,
@@ -55,6 +63,7 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
                     layer="",
                     tag="",
                     splitLayers=false,
+                    splitTags=(data.tagsplit ~= "No"),
                     listLayers=layer,
                     listTags=true,
                     listSlices=true,
@@ -108,6 +117,10 @@ dlg:check{
             id = "mergeDuplicates",
             visible = dlg.data.spritesheet
         }
+        dlg:modify{
+            id = "tagsplit",
+            visible = dlg.data.spritesheet
+        }
     end
 }
 dlg:check{
@@ -115,6 +128,13 @@ dlg:check{
     label = "  Trim:",
     selected = false,
     visible = false
+}
+dlg:combobox{
+    id = "tagsplit",
+    label = "  Split Tags:",
+    visible = false,
+    option = 'No',
+    options = {'No', 'To Rows', 'To Columns'}
 }
 dlg:check{
     id = "mergeDuplicates",
