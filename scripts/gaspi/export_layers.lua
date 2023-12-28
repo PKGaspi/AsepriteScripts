@@ -78,7 +78,7 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
 end
 
 -- Open main dialog.
-local dlg = Dialog("Export slices")
+local dlg = Dialog("Export layers")
 dlg:file{
     id = "directory",
     label = "Output directory:",
