@@ -8,6 +8,7 @@ Made by Gaspi.
    - Twitter: @_Gaspi
 Further Contributors:
     - Levy E ("StoneLabs")
+	- David Höchtl ("DavidHoechtl")
 --]]
 
 -- Import main.
@@ -16,6 +17,31 @@ if err ~= 0 then return err end
 
 -- Variable to keep track of the number of layers exported.
 local n_layers = 0
+
+
+-- Function to calculate the bounding box of the non-transparent pixels in a layer
+local function calculateBoundingBox(layer)
+    local minX, minY, maxX, maxY = nil, nil, nil, nil
+    for _, cel in ipairs(layer.cels) do
+        local image = cel.image
+        local position = cel.position
+
+        for y = 0, image.height - 1 do
+            for x = 0, image.width - 1 do
+                if image:getPixel(x, y) ~= 0 then -- Non-transparent pixel
+                    local pixelX = position.x + x
+                    local pixelY = position.y + y
+                    if not minX or pixelX < minX then minX = pixelX end
+                    if not minY or pixelY < minY then minY = pixelY end
+                    if not maxX or pixelX > maxX then maxX = pixelX end
+                    if not maxY or pixelY > maxY then maxY = pixelY end
+                end
+            end
+        end
+    end
+    return Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1)
+end
+
 -- Exports every layer individually.
 local function exportLayers(sprite, root_layer, filename, group_sep, data)
     for _, layer in ipairs(root_layer.layers) do
@@ -68,8 +94,28 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
                     listTags=true,
                     listSlices=true,
                 }
-            else
-                sprite:saveCopyAs(filename)
+            else		
+				-- Trim the layer
+				if data.trim then
+					local boundingRect = calculateBoundingBox(layer)
+					-- make a selection on the active layer
+					app.activeLayer = layer;
+					sprite.selection = Selection(boundingRect);
+					
+					-- create a new sprite from that selection
+					app.command.NewSpriteFromSelection()
+					
+					-- save it as png
+					app.command.SaveFile {
+						ui=false,
+						filename=filename
+					}
+					app.command.CloseFile()
+					
+					app.activeSprite = layer.sprite  -- Set the active sprite to the current layer's sprite
+				else
+					sprite:saveCopyAs(filename)
+				end
             end
             layer.isVisible = false
             n_layers = n_layers + 1
@@ -121,6 +167,13 @@ dlg:check{
             id = "tagsplit",
             visible = dlg.data.spritesheet
         }
+		
+		-- Trim is not supported in spritesheet export
+		dlg:modify{
+			id="trim",
+			selected = false,
+			visible = false
+		}
     end
 }
 dlg:check{
@@ -143,6 +196,11 @@ dlg:check{
     visible = false
 }
 dlg:check{id = "save", label = "Save sprite:", selected = false}
+dlg:check{
+    id = "trim",
+    label = "  Trim:",
+    selected = false
+}
 dlg:button{id = "ok", text = "Export"}
 dlg:button{id = "cancel", text = "Cancel"}
 dlg:show()
