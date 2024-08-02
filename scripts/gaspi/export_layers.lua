@@ -8,6 +8,7 @@ Made by Gaspi.
    - Twitter: @_Gaspi
 Further Contributors:
     - Levy E ("StoneLabs")
+    - Demonkiller8973
 --]]
 
 -- Import main.
@@ -56,7 +57,9 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
                     borderPadding=0,
                     shapePadding=0,
                     innerPadding=0,
+					trimSprite=data.trimSprite,
                     trim=data.trim,
+					trimByGrid=data.trimByGrid,
                     mergeDuplicates=data.mergeDuplicates,
                     extrude=false,
                     openGenerated=false,
@@ -110,7 +113,7 @@ dlg:check{
     onclick = function()
         -- Show this options only if spritesheet is checked.
         dlg:modify{
-            id = "trim",
+            id = "trimSprite",
             visible = dlg.data.spritesheet
         }
         dlg:modify{
@@ -124,8 +127,20 @@ dlg:check{
     end
 }
 dlg:check{
-    id = "trim",
-    label = "  Trim:",
+    id = "trimSprite",
+    label = "  Trim Sprite:",
+    selected = false,
+    visible = false,
+	onclick = function()
+		dlg:modify{
+            id = "trimByGrid",
+            visible = dlg.data.trimSprite
+        }
+	end
+}
+dlg:check{
+    id = "trimByGrid",
+    label = "  Trim Grid:",
     selected = false,
     visible = false
 }
