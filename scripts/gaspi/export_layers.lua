@@ -8,7 +8,7 @@ Made by Gaspi.
    - Twitter: @_Gaspi
 Further Contributors:
     - Levy E ("StoneLabs")
-	- David Höchtl ("DavidHoechtl")
+    - David Höchtl ("DavidHoechtl")
 --]]
 
 -- Import main.
@@ -95,27 +95,27 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
                     listSlices=true,
                 }
             else		
-				-- Trim the layer
-				if data.trim then
-					local boundingRect = calculateBoundingBox(layer)
-					-- make a selection on the active layer
-					app.activeLayer = layer;
-					sprite.selection = Selection(boundingRect);
-					
-					-- create a new sprite from that selection
-					app.command.NewSpriteFromSelection()
-					
-					-- save it as png
-					app.command.SaveFile {
-						ui=false,
-						filename=filename
-					}
-					app.command.CloseFile()
-					
-					app.activeSprite = layer.sprite  -- Set the active sprite to the current layer's sprite
-				else
-					sprite:saveCopyAs(filename)
-				end
+                -- Trim the layer
+                if data.trim then
+                    local boundingRect = calculateBoundingBox(layer)
+                    -- make a selection on the active layer
+                    app.activeLayer = layer;
+                    sprite.selection = Selection(boundingRect);
+                    
+                    -- create a new sprite from that selection
+                    app.command.NewSpriteFromSelection()
+                    
+                    -- save it as png
+                    app.command.SaveFile {
+                        ui=false,
+                        filename=filename
+                    }
+                    app.command.CloseFile()
+                    
+                    app.activeSprite = layer.sprite  -- Set the active sprite to the current layer's sprite
+                else
+                    sprite:saveCopyAs(filename)
+                end
             end
             layer.isVisible = false
             n_layers = n_layers + 1
@@ -167,13 +167,13 @@ dlg:check{
             id = "tagsplit",
             visible = dlg.data.spritesheet
         }
-		
-		-- Trim is not supported in spritesheet export
-		dlg:modify{
-			id="trim",
-			selected = false,
-			visible = false
-		}
+        
+        -- Trim is not supported in spritesheet export
+        dlg:modify{
+            id="trim",
+            selected = false,
+            visible = false
+        }
     end
 }
 dlg:check{
