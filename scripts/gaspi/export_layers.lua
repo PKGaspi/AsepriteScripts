@@ -94,28 +94,25 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
                     listTags=true,
                     listSlices=true,
                 }
-            else		
-                -- Trim the layer
-                if data.trim then
-                    local boundingRect = calculateBoundingBox(layer)
-                    -- make a selection on the active layer
-                    app.activeLayer = layer;
-                    sprite.selection = Selection(boundingRect);
-                    
-                    -- create a new sprite from that selection
-                    app.command.NewSpriteFromSelection()
-                    
-                    -- save it as png
-                    app.command.SaveFile {
-                        ui=false,
-                        filename=filename
-                    }
-                    app.command.CloseFile()
-                    
-                    app.activeSprite = layer.sprite  -- Set the active sprite to the current layer's sprite
-                else
-                    sprite:saveCopyAs(filename)
-                end
+            elseif data.trim then -- Trim the layer
+                local boundingRect = calculateBoundingBox(layer)
+                -- make a selection on the active layer
+                app.activeLayer = layer;
+                sprite.selection = Selection(boundingRect);
+                
+                -- create a new sprite from that selection
+                app.command.NewSpriteFromSelection()
+                
+                -- save it as png
+                app.command.SaveFile {
+                    ui=false,
+                    filename=filename
+                }
+                app.command.CloseFile()
+                
+                app.activeSprite = layer.sprite  -- Set the active sprite to the current layer's sprite
+            else
+                sprite:saveCopyAs(filename)
             end
             layer.isVisible = false
             n_layers = n_layers + 1
@@ -150,15 +147,17 @@ dlg:combobox{
 }
 dlg:slider{id = 'scale', label = 'Export Scale:', min = 1, max = 10, value = 1}
 dlg:check{
+    id = "trim",
+    label = "Trim:",
+    selected = false
+}
+dlg:check{
     id = "spritesheet",
     label = "Export as spritesheet:",
     selected = false,
     onclick = function()
         -- Show this options only if spritesheet is checked.
-        dlg:modify{
-            id = "trim",
-            visible = dlg.data.spritesheet
-        }
+
         dlg:modify{
             id = "mergeDuplicates",
             visible = dlg.data.spritesheet
@@ -167,40 +166,22 @@ dlg:check{
             id = "tagsplit",
             visible = dlg.data.spritesheet
         }
-        
-        -- Trim is not supported in spritesheet export
-        dlg:modify{
-            id="trim",
-            selected = false,
-            visible = false
-        }
     end
 }
-dlg:check{
-    id = "trim",
-    label = "  Trim:",
-    selected = false,
-    visible = false
-}
-dlg:combobox{
+dlg:combobox{ -- Spritesheet export only option
     id = "tagsplit",
     label = "  Split Tags:",
     visible = false,
     option = 'No',
     options = {'No', 'To Rows', 'To Columns'}
 }
-dlg:check{
+dlg:check{ -- Spritesheet export only option
     id = "mergeDuplicates",
     label = "  Merge duplicates:",
     selected = false,
     visible = false
 }
 dlg:check{id = "save", label = "Save sprite:", selected = false}
-dlg:check{
-    id = "trim",
-    label = "  Trim:",
-    selected = false
-}
 dlg:button{id = "ok", text = "Export"}
 dlg:button{id = "cancel", text = "Cancel"}
 dlg:show()
