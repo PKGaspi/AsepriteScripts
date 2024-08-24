@@ -9,6 +9,7 @@ Made by Gaspi.
 Further Contributors:
     - Levy E ("StoneLabs")
     - David Höchtl ("DavidHoechtl")
+    - Demonkiller8973
 --]]
 
 -- Import main.
@@ -82,7 +83,9 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
                     borderPadding=0,
                     shapePadding=0,
                     innerPadding=0,
-                    trim=data.trim,
+                    trimSprite=data.trimSprite,
+                    trim=data.trimCells,
+                    trimByGrid=data.trimByGrid,
                     mergeDuplicates=data.mergeDuplicates,
                     extrude=false,
                     openGenerated=false,
@@ -147,17 +150,24 @@ dlg:combobox{
 }
 dlg:slider{id = 'scale', label = 'Export Scale:', min = 1, max = 10, value = 1}
 dlg:check{
-    id = "trim",
-    label = "Trim:",
-    selected = false
-}
-dlg:check{
     id = "spritesheet",
     label = "Export as spritesheet:",
     selected = false,
     onclick = function()
-        -- Show this options only if spritesheet is checked.
-
+        -- Hide these options when spritesheet is checked.
+        dlg:modify{
+            id = "trim",
+            visible = not dlg.data.spritesheet
+        }
+        -- Show these options when spritesheet is checked.
+        dlg:modify{
+            id = "trimSprite",
+            visible = dlg.data.spritesheet
+        }
+        dlg:modify{
+            id = "trimCells",
+            visible = dlg.data.spritesheet
+        }
         dlg:modify{
             id = "mergeDuplicates",
             visible = dlg.data.spritesheet
@@ -167,6 +177,41 @@ dlg:check{
             visible = dlg.data.spritesheet
         }
     end
+}
+dlg:check{
+    id = "trim",
+    label = "Trim:",
+    selected = false
+}
+dlg:check{
+    id = "trimSprite",
+    label = "  Trim Sprite:",
+    selected = false,
+    visible = false,
+    onclick = function()
+        dlg:modify{
+            id = "trimByGrid",
+            visible = dlg.data.trimSprite or dlg.data.trimCells,
+        }
+    end
+}
+dlg:check{
+    id = "trimCells",
+    label = "  Trim Cells:",
+    selected = false,
+    visible = false,
+    onclick = function()
+        dlg:modify{
+            id = "trimByGrid",
+            visible = dlg.data.trimSprite or dlg.data.trimCells,
+        }
+    end
+}
+dlg:check{
+    id = "trimByGrid",
+    label = "  Trim Grid:",
+    selected = false,
+    visible = false
 }
 dlg:combobox{ -- Spritesheet export only option
     id = "tagsplit",
