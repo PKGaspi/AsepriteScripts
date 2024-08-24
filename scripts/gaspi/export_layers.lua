@@ -114,6 +114,7 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
                 app.command.CloseFile()
                 
                 app.activeSprite = layer.sprite  -- Set the active sprite to the current layer's sprite
+                sprite.selection = Selection();
             else
                 sprite:saveCopyAs(filename)
             end
