@@ -8,9 +8,9 @@ Please, take a look at the [repo wiki](https://github.com/PKGaspi/AsepriteScript
 to learn more about the scripts.
 
 ## Disclaimer
-These scripts were last tested on Aseprite version v1.2.14. It happened before that
+These scripts were last tested on Aseprite version v1.3.8. It happened before that
 an Aseprite update broke the functionality of these scripts. Please, backup your work 
-before use. If a script doesn't work, please open an issue.
+before use. If a script doesn't work, please report openning an issue.
 
 ## Installation
 
