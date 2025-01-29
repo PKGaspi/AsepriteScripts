@@ -102,17 +102,17 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
                 -- make a selection on the active layer
                 app.activeLayer = layer;
                 sprite.selection = Selection(boundingRect);
-                
+
                 -- create a new sprite from that selection
                 app.command.NewSpriteFromSelection()
-                
+
                 -- save it as png
                 app.command.SaveFile {
                     ui=false,
                     filename=filename
                 }
                 app.command.CloseFile()
-                
+
                 app.activeSprite = layer.sprite  -- Set the active sprite to the current layer's sprite
                 sprite.selection = Selection();
             else
@@ -136,6 +136,31 @@ dlg:entry{
     id = "filename",
     label = "File name format:",
     text = "{layergroups}{layername}"
+}
+
+-- Local vars for layer displayed names and internal values
+local layerNames = {}
+local layerMap = {}
+
+-- Recursive function to create a list of all layers/groups and sub-layers in groups
+local function addLayers(layerList, prefix)
+    for _, layer in ipairs(layerList) do
+        local displayName = prefix .. layer.name  -- Add a prefix " " to displayed name
+        table.insert(layerNames, displayName)
+        layerMap[displayName] = layer  -- create the mapping between displayed name and internal name
+
+        if layer.isGroup then
+            addLayers(layer.layers, "  ")
+        end
+    end
+end
+
+-- Create the layer list in a combobox
+addLayers(app.activeSprite.layers, "")
+dlg:combobox{
+  id="selectedLayer",
+  label="Layers to export :",
+  options=layerNames
 }
 dlg:combobox{
     id = 'format',
@@ -249,10 +274,13 @@ filename = filename:gsub("{spritename}",
                          RemoveExtension(Basename(Sprite.filename)))
 filename = filename:gsub("{groupseparator}", group_sep)
 
+local selectedLayerName = dlg.data["selectedLayer"]
+local selectedLayers = layerMap[selectedLayerName]
+
 -- Finally, perform everything.
 Sprite:resize(Sprite.width * dlg.data.scale, Sprite.height * dlg.data.scale)
 local layers_visibility_data = HideLayers(Sprite)
-exportLayers(Sprite, Sprite, output_path .. filename, group_sep, dlg.data)
+exportLayers(Sprite, selectedLayers, output_path .. filename, group_sep, dlg.data)
 RestoreLayersVisibility(Sprite, layers_visibility_data)
 Sprite:resize(Sprite.width / dlg.data.scale, Sprite.height / dlg.data.scale)
 
