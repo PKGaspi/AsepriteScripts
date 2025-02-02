@@ -139,8 +139,8 @@ dlg:entry{
 }
 
 -- Local vars for layer displayed names and internal values
-local layerNames = {}
-local layerMap = {}
+local layerNames = { "All Layers" }
+local layerMap = {["All Layers"] = "ALL_LAYERS" }
 
 -- Recursive function to create a list of all layers/groups and sub-layers in groups
 local function addLayers(layerList, prefix)
@@ -166,7 +166,7 @@ dlg:combobox{
     id = 'format',
     label = 'Export Format:',
     option = 'png',
-    options = {'png', 'gif', 'jpg'}
+    options = {'png', 'gif', 'jpg', 'aseprite'}
 }
 dlg:combobox{
     id = 'group_sep',
