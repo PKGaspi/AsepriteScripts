@@ -45,7 +45,7 @@ end
 -- Exports every layer individually.
 local function exportLayers(sprite, root_layer, filename, group_sep, data)
     for _, layer in ipairs(root_layer.layers) do
-        -- Skip layers whose name starts with "_" if option is enabled
+        -- Skip layers with name prefixed with "_" if enabled
         if data.exclude_underscore and string.sub(layer.name, 1, 1) == "_" then
             goto continue
         end
@@ -160,11 +160,11 @@ dlg:check{
     label = "Export as spritesheet:",
     selected = false,
     onclick = function()
-        -- Show these options when spritesheet is checked.
         dlg:modify{
             id = "trim",
             visible = not dlg.data.spritesheet
         }
+        -- Show these options when spritesheet is checked.
         dlg:modify{
             id = "trimSprite",
             visible = dlg.data.spritesheet
@@ -173,21 +173,20 @@ dlg:check{
             id = "trimCells",
             visible = dlg.data.spritesheet
         }
-        dlg:modify{ -- Spritesheet export only option
-            id = "tagsplit",
-            visible = dlg.data.spritesheet
-        }
-        dlg:modify{ -- Spritesheet export only option
-            id = "mergeDuplicates",
-            visible = dlg.data.spritesheet
-        }        
+        dlg:modify{
+         id = "mergeDuplicates",
+         visible = dlg.data.spritesheet
+      }
+      dlg:modify{
+         id = "tagsplit",
+         visible = dlg.data.spritesheet
+      }
     end
 }
 dlg:check{
     id = "trim",
     label = "Trim:",
-    selected = false,
-    visible = false
+    selected = false
 }
 dlg:check{
     id = "trimSprite",
@@ -219,14 +218,14 @@ dlg:check{
     selected = false,
     visible = false
 }
-dlg:combobox{
+dlg:combobox{ -- Spritesheet export only option
     id = "tagsplit",
     label = "  Split Tags:",
     visible = false,
     option = 'No',
     options = {'No', 'To Rows', 'To Columns'}
 }
-dlg:check{
+dlg:check{ -- Spritesheet export only option
     id = "mergeDuplicates",
     label = "  Merge duplicates:",
     selected = false,
