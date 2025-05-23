@@ -45,8 +45,9 @@ end
 -- Exports every layer individually.
 local function exportLayers(sprite, root_layer, filename, group_sep, data)
     for _, layer in ipairs(root_layer.layers) do
-        -- Skip layers with name prefixed with "_" if enabled
-        if data.exclude_underscore and string.sub(layer.name, 1, 1) == "_" then
+        local prefix = data.exclude_prefix or "_"
+        -- Skip layer with specified prefix and prefix is not empty
+        if data.exclude_prefix and prefix ~= "" and string.sub(layer.name, 1, #prefix) == prefix then
             goto continue
         end
         local filename = filename
@@ -157,7 +158,7 @@ dlg:slider{id = 'scale', label = 'Export Scale:', min = 1, max = 10, value = 1}
 dlg:check{
     id = "spritesheet",
     label = "Export as spritesheet:",
-    selected = false,
+    selected = true,
     onclick = function()
         dlg:modify{
             id = "trim",
@@ -231,11 +232,23 @@ dlg:check{ -- Spritesheet export only option
     visible = false
 }
 dlg:check{
-    id = "exclude_underscore",
-    label = "Exclude layers starting with _",
-    selected = false
+    id = "exclude_prefix",
+    label = "Exclude layers with prefix",
+    selected = false,
+    onclick = function()
+        dlg:modify{
+            id = "exclude_prefix",
+            visible = dlg.data.exclude_prefix
+        }
+    end
 }
-dlg:check{id = "save", label = "Save sprite:", selected = false}
+dlg:entry{
+    id = "exclude_prefix",
+    label = "  Prefix:",
+    text = "_",
+    visible = false
+}
+dlg:check{id = "save", label = "Save sprite:", selected = true}
 dlg:button{id = "ok", text = "Export"}
 dlg:button{id = "cancel", text = "Cancel"}
 dlg:show()
