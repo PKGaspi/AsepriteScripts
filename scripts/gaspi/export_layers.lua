@@ -155,10 +155,12 @@ dlg:combobox{
 }
 dlg:slider{id = 'scale', label = 'Export Scale:', min = 1, max = 10, value = 1}
 dlg:check{
+    -- Hide these options when spritesheet is checked.
     id = "spritesheet",
     label = "Export as spritesheet:",
     selected = false,
     onclick = function()
+        -- Show these options when spritesheet is checked.
         dlg:modify{
             id = "trim",
             visible = not dlg.data.spritesheet
@@ -171,14 +173,14 @@ dlg:check{
             id = "trimCells",
             visible = dlg.data.spritesheet
         }
-        dlg:modify{
-            id = "mergeDuplicates",
-            visible = dlg.data.spritesheet
-        }
-        dlg:modify{
+        dlg:modify{ -- Spritesheet export only option
             id = "tagsplit",
             visible = dlg.data.spritesheet
         }
+        dlg:modify{ -- Spritesheet export only option
+            id = "mergeDuplicates",
+            visible = dlg.data.spritesheet
+        }        
     end
 }
 dlg:check{
@@ -239,13 +241,6 @@ dlg:check{id = "save", label = "Save sprite:", selected = false}
 dlg:button{id = "ok", text = "Export"}
 dlg:button{id = "cancel", text = "Cancel"}
 dlg:show()
-
--- Ensure correct visibility on dialog open
-dlg:modify{ id = "trim", visible = not dlg.data.spritesheet }
-dlg:modify{ id = "trimSprite", visible = dlg.data.spritesheet }
-dlg:modify{ id = "trimCells", visible = dlg.data.spritesheet }
-dlg:modify{ id = "mergeDuplicates", visible = dlg.data.spritesheet }
-dlg:modify{ id = "tagsplit", visible = dlg.data.spritesheet }
 
 if not dlg.data.ok then return 0 end
 
