@@ -155,7 +155,6 @@ dlg:combobox{
 }
 dlg:slider{id = 'scale', label = 'Export Scale:', min = 1, max = 10, value = 1}
 dlg:check{
-    -- Hide these options when spritesheet is checked.
     id = "spritesheet",
     label = "Export as spritesheet:",
     selected = false,
