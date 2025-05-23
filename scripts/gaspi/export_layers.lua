@@ -158,7 +158,7 @@ dlg:slider{id = 'scale', label = 'Export Scale:', min = 1, max = 10, value = 1}
 dlg:check{
     id = "spritesheet",
     label = "Export as spritesheet:",
-    selected = true,
+    selected = false,
     onclick = function()
         dlg:modify{
             id = "trim",
@@ -248,7 +248,7 @@ dlg:entry{
     text = "_",
     visible = false
 }
-dlg:check{id = "save", label = "Save sprite:", selected = true}
+dlg:check{id = "save", label = "Save sprite:", selected = false}
 dlg:button{id = "ok", text = "Export"}
 dlg:button{id = "cancel", text = "Cancel"}
 dlg:show()
