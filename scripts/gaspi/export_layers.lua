@@ -6,6 +6,10 @@ A script to save all different layers in different files.
 Made by Gaspi.
    - Itch.io: https://gaspi.itch.io/
    - Twitter: @_Gaspi
+Further Contributors:
+    - Levy E ("StoneLabs")
+    - David Höchtl ("DavidHoechtl")
+    - Demonkiller8973
 --]]
 
 -- Import main.
@@ -14,10 +18,34 @@ if err ~= 0 then return err end
 
 -- Variable to keep track of the number of layers exported.
 local n_layers = 0
+
+-- Function to calculate the bounding box of the non-transparent pixels in a layer
+local function calculateBoundingBox(layer)
+    local minX, minY, maxX, maxY = nil, nil, nil, nil
+    for _, cel in ipairs(layer.cels) do
+        local image = cel.image
+        local position = cel.position
+
+        for y = 0, image.height - 1 do
+            for x = 0, image.width - 1 do
+                if image:getPixel(x, y) ~= 0 then -- Non-transparent pixel
+                    local pixelX = position.x + x
+                    local pixelY = position.y + y
+                    if not minX or pixelX < minX then minX = pixelX end
+                    if not minY or pixelY < minY then minY = pixelY end
+                    if not maxX or pixelX > maxX then maxX = pixelX end
+                    if not maxY or pixelY > maxY then maxY = pixelY end
+                end
+            end
+        end
+    end
+    return Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1)
+end
+
 -- Exports every layer individually.
 local function exportLayers(sprite, root_layer, filename, group_sep, data)
     for _, layer in ipairs(root_layer.layers) do
-        -- Exclude layers prefixed with an underscore(_).
+        -- Skip layers whose name starts with "_" if option is enabled
         if data.exclude_underscore and string.sub(layer.name, 1, 1) == "_" then
             goto continue
         end
@@ -37,10 +65,16 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
             filename = filename:gsub("{layername}", layer.name)
             os.execute("mkdir \"" .. Dirname(filename) .. "\"")
             if data.spritesheet then
+                local sheettype=SpriteSheetType.HORIZONTAL
+                if (data.tagsplit == "To Rows") then
+                    sheettype=SpriteSheetType.ROWS
+                elseif (data.tagsplit == "To Columns") then
+                    sheettype=SpriteSheetType.COLUMNS
+                end
                 app.command.ExportSpriteSheet{
                     ui=false,
                     askOverwrite=false,
-                    type=SpriteSheetType.HORIZONTAL,
+                    type=sheettype,
                     columns=0,
                     rows=0,
                     width=0,
@@ -52,29 +86,50 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
                     borderPadding=0,
                     shapePadding=0,
                     innerPadding=0,
-                    trim=data.trim,
+                    trimSprite=data.trimSprite,
+                    trim=data.trimCells,
+                    trimByGrid=data.trimByGrid,
                     mergeDuplicates=data.mergeDuplicates,
                     extrude=false,
                     openGenerated=false,
                     layer="",
                     tag="",
                     splitLayers=false,
+                    splitTags=(data.tagsplit ~= "No"),
                     listLayers=layer,
                     listTags=true,
                     listSlices=true,
                 }
+            elseif data.trim then -- Trim the layer
+                local boundingRect = calculateBoundingBox(layer)
+                -- make a selection on the active layer
+                app.activeLayer = layer;
+                sprite.selection = Selection(boundingRect);
+                
+                -- create a new sprite from that selection
+                app.command.NewSpriteFromSelection()
+                
+                -- save it as png
+                app.command.SaveFile {
+                    ui=false,
+                    filename=filename
+                }
+                app.command.CloseFile()
+                
+                app.activeSprite = layer.sprite  -- Set the active sprite to the current layer's sprite
+                sprite.selection = Selection();
             else
                 sprite:saveCopyAs(filename)
             end
             layer.isVisible = false
             n_layers = n_layers + 1
         end
-		::continue::
+        ::continue::
     end
 end
 
 -- Open main dialog.
-local dlg = Dialog("Export slices")
+local dlg = Dialog("Export layers")
 dlg:file{
     id = "directory",
     label = "Output directory:",
@@ -104,22 +159,70 @@ dlg:check{
     label = "Export as spritesheet:",
     selected = false,
     onclick = function()
-        -- Show this options only if spritesheet is checked.
         dlg:modify{
             id = "trim",
+            visible = not dlg.data.spritesheet
+        }
+        dlg:modify{
+            id = "trimSprite",
+            visible = dlg.data.spritesheet
+        }
+        dlg:modify{
+            id = "trimCells",
             visible = dlg.data.spritesheet
         }
         dlg:modify{
             id = "mergeDuplicates",
             visible = dlg.data.spritesheet
         }
+        dlg:modify{
+            id = "tagsplit",
+            visible = dlg.data.spritesheet
+        }
     end
 }
 dlg:check{
     id = "trim",
-    label = "  Trim:",
+    label = "Trim:",
     selected = false,
     visible = false
+}
+dlg:check{
+    id = "trimSprite",
+    label = "  Trim Sprite:",
+    selected = false,
+    visible = false,
+    onclick = function()
+        dlg:modify{
+            id = "trimByGrid",
+            visible = dlg.data.trimSprite or dlg.data.trimCells,
+        }
+    end
+}
+dlg:check{
+    id = "trimCells",
+    label = "  Trim Cells:",
+    selected = false,
+    visible = false,
+    onclick = function()
+        dlg:modify{
+            id = "trimByGrid",
+            visible = dlg.data.trimSprite or dlg.data.trimCells,
+        }
+    end
+}
+dlg:check{
+    id = "trimByGrid",
+    label = "  Trim Grid:",
+    selected = false,
+    visible = false
+}
+dlg:combobox{
+    id = "tagsplit",
+    label = "  Split Tags:",
+    visible = false,
+    option = 'No',
+    options = {'No', 'To Rows', 'To Columns'}
 }
 dlg:check{
     id = "mergeDuplicates",
@@ -129,15 +232,20 @@ dlg:check{
 }
 dlg:check{
     id = "exclude_underscore",
-    label = "Exclude _ prefixed layers",
+    label = "Exclude layers starting with _",
     selected = false
 }
 dlg:check{id = "save", label = "Save sprite:", selected = false}
 dlg:button{id = "ok", text = "Export"}
 dlg:button{id = "cancel", text = "Cancel"}
 dlg:show()
-dlg:modify{ id = "trim", visible = dlg.data.spritesheet }
+
+-- Ensure correct visibility on dialog open
+dlg:modify{ id = "trim", visible = not dlg.data.spritesheet }
+dlg:modify{ id = "trimSprite", visible = dlg.data.spritesheet }
+dlg:modify{ id = "trimCells", visible = dlg.data.spritesheet }
 dlg:modify{ id = "mergeDuplicates", visible = dlg.data.spritesheet }
+dlg:modify{ id = "tagsplit", visible = dlg.data.spritesheet }
 
 if not dlg.data.ok then return 0 end
 
