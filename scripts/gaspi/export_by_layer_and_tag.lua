@@ -43,7 +43,7 @@ local function exportByLayerAndTag(sprite, root_layer, filename_template, group_
             current_filename_template = current_filename_template:gsub("{layername}", layer.name)
 
             if data.splitByTagFile and #sprite.tags > 0 then
-                -- ## NEW LOGIC: Iterate through each tag and export a file for it. ##
+                -- [ Tags Logic ] Iterate through each tag and export a file for it.
                 for _, tag in ipairs(sprite.tags) do
                     local final_filename = current_filename_template:gsub("{tag}", tag.name)
                     os.execute("mkdir \"" .. Dirname(final_filename) .. "\"")
@@ -62,13 +62,13 @@ local function exportByLayerAndTag(sprite, root_layer, filename_template, group_
                         trimByGrid = data.trimByGrid,
                         layer = layer.name, -- Export only the current layer
                         tag = tag.name,     -- Export only the current tag
-                        splitLayers = false, -- We are handling layers manually
-                        splitTags = false    -- We are handling tags manually
+                        splitLayers = false, -- Handling layers manually
+                        splitTags = false    -- Handling tags manually
                     }
                     n_files_exported = n_files_exported + 1
                 end
             else
-                -- ## OLD LOGIC: Export the whole layer as one file. ##
+                -- ## Export the whole layer as one file.
                 local final_filename = current_filename_template:gsub("{tag}", "") -- Remove tag placeholder if not used
                 os.execute("mkdir \"" .. Dirname(final_filename) .. "\"")
                 app.command.ExportSpriteSheet{
@@ -101,7 +101,7 @@ end
 -- ## DIALOG ##
 -- ############
 
-local dlg = Dialog("Export by Layer and Tag")
+local dlg = Dialog("Pepeups - Export by Layer and Tag")
 dlg:file{
     id = "directory",
     label = "Output directory:",
@@ -128,7 +128,7 @@ dlg:combobox{
 dlg:slider{id = 'scale', label = 'Export Scale:', min = 1, max = 10, value = 1}
 dlg:separator()
 
--- ## NEW OPTION ##
+-- ## TAGS OPTION ##
 dlg:check{
     id = "splitByTagFile",
     label = "Export each tag as a separate file",
@@ -163,6 +163,7 @@ dlg:combobox{
     options = {'No', 'To Rows', 'To Columns'}
 }
 
+dlg:check{id = "save", label = "Save sprite:", selected = false}
 dlg:button{id = "ok", text = "Export"}
 dlg:button{id = "cancel", text = "Cancel"}
 dlg:show()
@@ -195,6 +196,9 @@ exportByLayerAndTag(Sprite, Sprite, output_path .. filename_template, group_sep,
 
 RestoreLayersVisibility(Sprite, layers_visibility_data)
 Sprite:resize(Sprite.width / dlg.data.scale, Sprite.height / dlg.data.scale)
+
+-- Save the original file if specified
+if dlg.data.save then Sprite:saveAs(dlg.data.directory) end
 
 -- Success dialog.
 local success_dlg = MsgDialog("Success!", "Exported " .. n_files_exported .. " files.")
