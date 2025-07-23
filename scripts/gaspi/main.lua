@@ -113,6 +113,8 @@ if debug.getinfo(2) == nil then
    dlg:newrow()
    dlg:button{id = "layers", text = "Export layers", onclick = function() dofile("export_layers.lua") end}
    dlg:newrow()
+   dlg:button{id = "layer_and_tag", text = "Export Layers by Tag", onclick = function() dofile("export_by_layer_and_tag.lua") end}
+   dlg:newrow()
    dlg:button{id = "slices", text = "Export slices", onclick = function() dofile("export_slices.lua") end}
    dlg:newrow()
    dlg:button{id = "combinations", text = "Export combinations", onclick = function() dofile("export_combinations.lua") end}
