@@ -24,6 +24,7 @@ before use. If a script doesn't work, please report openning an issue.
 
 Here is a list with all the current scripts and how to use them:
 - [Export Layers](https://github.com/PKGaspi/AsepriteScripts/wiki/Export-Layers)
+- [Export By Layers And Tags]() [Made by PedroVillasBoas]
 - [Export Slices](https://github.com/PKGaspi/AsepriteScripts/wiki/Export-Slices)
 - [Export Combinations](https://github.com/PKGaspi/AsepriteScripts/wiki/Export-Combinations)
 
@@ -38,8 +39,8 @@ trickery involved causes the sprite to appear as modified.
 
 
 ## About me
-Hey, I'm a Computer Science graduate fascinated by the videogame industry.
-Here are some of my links:
-- Web: [gaspi.games](http://gaspi.games/)
-- Twitter: [@_Gaspi](https://twitter.com/@_Gaspi)
-- Aseprite Community: [Gaspi](https://community.aseprite.org/u/Gaspi/summary)
+I make the games you like to play!
+Here are my links:
+- Web: [Pedro's Website](http://pedrovilasboas.dev/)
+- Twitter: [@PeuVillasBoas](https://x.com/@PeuVillasBoas)
+- LinkedIn: [Pedro Vilas Boas](https://www.linkedin.com/in/pedro-vilas-b%C3%B4as/)
