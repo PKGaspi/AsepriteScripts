@@ -1,9 +1,3 @@
-Of course. Here is the complete README file with the new section seamlessly integrated.
-
-I've added a new section called **"Features Added in this Fork"** right after the original `Scripts` section to clearly distinguish your new feature. I also added a non-linked entry to the original list for consistency.
-
------
-
 # Gaspi's Aseprite Scripts
 
 Welcome to my collection of Aseprite Scripts. They all aim to save you time
