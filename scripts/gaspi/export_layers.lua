@@ -176,11 +176,11 @@ dlg:check{
         dlg:modify{
          id = "mergeDuplicates",
          visible = dlg.data.spritesheet
-      }
-      dlg:modify{
-         id = "tagsplit",
-         visible = dlg.data.spritesheet
-      }
+         }
+         dlg:modify{
+            id = "tagsplit",
+            visible = dlg.data.spritesheet
+         }
     end
 }
 dlg:check{
