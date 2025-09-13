@@ -19,6 +19,7 @@ if err ~= 0 then return err end
 -- Variable to keep track of the number of layers exported.
 local n_layers = 0
 
+
 -- Function to calculate the bounding box of the non-transparent pixels in a layer
 local function calculateBoundingBox(layer)
     local minX, minY, maxX, maxY = nil, nil, nil, nil
@@ -160,6 +161,7 @@ dlg:check{
     label = "Export as spritesheet:",
     selected = false,
     onclick = function()
+        -- Hide these options when spritesheet is checked.
         dlg:modify{
             id = "trim",
             visible = not dlg.data.spritesheet
@@ -176,8 +178,8 @@ dlg:check{
         dlg:modify{
             id = "mergeDuplicates",
             visible = dlg.data.spritesheet
-        }  
-         dlg:modify{
+        }
+        dlg:modify{
             id = "tagsplit",
             visible = dlg.data.spritesheet
         }
