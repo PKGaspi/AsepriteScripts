@@ -1,4 +1,6 @@
-# Gaspi's Aseprite Scripts
+# Peu's & Gaspi's Aseprite Scripts
+
+- This is a fork from Gaspi's repository to expand on the collection. 
 
 Welcome to my collection of Aseprite Scripts. They all aim to save you time
 doing specific and repetitive tasks. If you find yourself in this situation, you
