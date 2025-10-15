@@ -56,6 +56,11 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
             exportLayers(sprite, layer, filename, group_sep, data)
             layer.isVisible = previousVisibility
         else
+            -- Ignore reference layers.
+            if layer.isReference then
+                goto continue
+            end
+
             -- Individual layer. Export it.
             layer.isVisible = true
             filename = filename:gsub("{layergroups}", "")
@@ -121,6 +126,7 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
             layer.isVisible = false
             n_layers = n_layers + 1
         end
+        ::continue::
     end
 end
 
