@@ -46,6 +46,11 @@ end
 -- Exports every layer individually.
 local function exportLayers(sprite, root_layer, filename, group_sep, data)
     for _, layer in ipairs(root_layer.layers) do
+        local prefix = data.exclusion_prefix or "_"
+        -- Skip layer with specified prefix and prefix is not empty
+        if data.exclude_prefix and prefix ~= "" and string.sub(layer.name, 1, #prefix) == prefix then
+            goto continue
+        end
         local filename = filename
         if layer.isGroup then
             -- Recursive for groups.
@@ -231,6 +236,23 @@ dlg:check{ -- Spritesheet export only option
     id = "mergeDuplicates",
     label = "  Merge duplicates:",
     selected = false,
+    visible = false
+}
+dlg:check{
+    id = "exclude_prefix",
+    label = "Exclude layers with prefix",
+    selected = false,
+    onclick = function()
+        dlg:modify{
+            id = "exclusion_prefix",
+            visible = dlg.data.exclude_prefix
+        }
+    end
+}
+dlg:entry{
+    id = "exclusion_prefix",
+    label = "  Prefix:",
+    text = "_",
     visible = false
 }
 dlg:check{id = "save", label = "Save sprite:", selected = false}
