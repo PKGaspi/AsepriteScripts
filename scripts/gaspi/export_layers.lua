@@ -70,7 +70,7 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
             layer.isVisible = true
             filename = filename:gsub("{layergroups}", "")
             filename = filename:gsub("{layername}", layer.name)
-            os.execute("mkdir \"" .. Dirname(filename) .. "\"")
+            app.fs.makeAllDirectories(Dirname(filename))
             if data.spritesheet then
                 local sheettype=SpriteSheetType.HORIZONTAL
                 if (data.tagsplit == "To Rows") then
