@@ -24,6 +24,11 @@ local Basename = M.Basename
 local RemoveExtension = M.RemoveExtension
 local HideLayers = M.HideLayers
 local MsgDialog = M.MsgDialog
+local LoadSettings = M.LoadSettings
+local SaveSettings = M.SaveSettings
+
+-- Load saved preferences.
+local prefs = LoadSettings("export_layers")
 
 -- Variable to keep track of the number of layers exported.
 local n_layers = 0
@@ -51,6 +56,10 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
         local prefix = data.exclusion_prefix or "_"
         -- Skip layer with specified prefix and prefix is not empty
         if data.exclude_prefix and prefix ~= "" and string.sub(layer.name, 1, #prefix) == prefix then
+            goto continue
+        end
+        -- Skip layers that were not originally visible when "only visible" is set.
+        if data.only_visible and data.visible_set and not data.visible_set[layer.name] then
             goto continue
         end
         local filename = filename
@@ -143,27 +152,27 @@ local dlg = Dialog("Export layers")
 dlg:file{
     id = "directory",
     label = "Output directory:",
-    filename = Sprite.filename,
+    filename = prefs.directory or Dirname(Sprite.filename),
     open = false
 }
 dlg:entry{
     id = "filename",
     label = "File name format:",
-    text = "{layergroups}{layername}"
+    text = prefs.filename or "{layergroups}{layername}"
 }
 dlg:combobox{
     id = 'format',
     label = 'Export Format:',
-    option = 'png',
+    option = prefs.format or 'png',
     options = {'png', 'gif', 'jpg'}
 }
 dlg:combobox{
     id = 'group_sep',
     label = 'Group separator:',
-    option = Sep,
+    option = prefs.group_sep or Sep,
     options = {Sep, '-', '_'}
 }
-dlg:slider{id = 'scale', label = 'Export Scale:', min = 1, max = 10, value = 1}
+dlg:slider{id = 'scale', label = 'Export Scale:', min = 1, max = 10, value = prefs.scale or 1}
 dlg:check{
     id = "spritesheet",
     label = "Export as spritesheet:",
@@ -258,6 +267,7 @@ dlg:entry{
     text = "_",
     visible = false
 }
+dlg:check{id = "only_visible", label = "Only visible layers:", selected = false}
 dlg:check{id = "save", label = "Save sprite:", selected = false}
 dlg:button{id = "ok", text = "Export"}
 dlg:button{id = "cancel", text = "Cancel"}
@@ -282,10 +292,26 @@ filename = filename:gsub("{groupseparator}", group_sep)
 
 -- Work on a flat copy so the original sprite is never mutated (no undo entry).
 local function performExport()
+    -- Build set of originally-visible layer names from the unmodified sprite.
+    local visible_set = nil
+    if dlg.data.only_visible then
+        visible_set = {}
+        local function collectVisible(layers)
+            for _, layer in ipairs(layers) do
+                if layer.isVisible then visible_set[layer.name] = true end
+                if layer.isGroup then collectVisible(layer.layers) end
+            end
+        end
+        collectVisible(Sprite.layers)
+    end
+
+    local data = dlg.data
+    data.visible_set = visible_set
+
     local copy = Sprite:duplicate()
     copy:resize(copy.width * dlg.data.scale, copy.height * dlg.data.scale)
     HideLayers(copy)
-    exportLayers(copy, copy, output_path .. filename, group_sep, dlg.data)
+    exportLayers(copy, copy, output_path .. filename, group_sep, data)
     copy:close()
 end
 
@@ -293,6 +319,15 @@ performExport()
 
 -- Save the original file if specified
 if dlg.data.save then Sprite:saveAs(dlg.data.directory) end
+
+-- Persist settings for next run.
+SaveSettings("export_layers", {
+    directory = dlg.data.directory,
+    filename = dlg.data.filename,
+    format = dlg.data.format,
+    group_sep = dlg.data.group_sep,
+    scale = dlg.data.scale,
+})
 
 -- Success dialog.
 local dlg = MsgDialog("Success!", "Exported " .. n_layers .. " layers.")

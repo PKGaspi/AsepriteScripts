@@ -82,6 +82,86 @@ function M.CopyTable(original)
    return copy
 end
 
+-- Settings persistence.
+-- Stores preferences as a simple JSON file next to the scripts.
+-- ponytail: hand-rolled flat JSON for tables with string/number/bool values only.
+-- Upgrade path: use a full JSON lib if nested structures are ever needed.
+
+local settings_dir = debug.getinfo(1, "S").source:match("@?(.*)[/\\]")
+local settings_file = settings_dir .. app.fs.pathSeparator .. "settings.json"
+
+local function encodeJson(tbl)
+   local parts = {}
+   for k, v in pairs(tbl) do
+      local val
+      if type(v) == "string" then
+         val = '"' .. v:gsub('\\', '\\\\'):gsub('"', '\\"') .. '"'
+      elseif type(v) == "boolean" then
+         val = v and "true" or "false"
+      else
+         val = tostring(v)
+      end
+      parts[#parts + 1] = '"' .. k .. '":' .. val
+   end
+   return "{" .. table.concat(parts, ",") .. "}"
+end
+
+local function decodeJson(str)
+   -- Minimal parser for flat {key: value} objects.
+   local tbl = {}
+   for k, v in str:gmatch('"([^"]+)"%s*:%s*(".-[^\\]"|%d+%.?%d*|true|false)') do
+      if v == "true" then
+         tbl[k] = true
+      elseif v == "false" then
+         tbl[k] = false
+      elseif v:sub(1,1) == '"' then
+         tbl[k] = v:sub(2, -2):gsub('\\"', '"'):gsub('\\\\', '\\')
+      else
+         tbl[k] = tonumber(v)
+      end
+   end
+   return tbl
+end
+
+function M.LoadSettings(scope)
+   local f = io.open(settings_file, "r")
+   if not f then return {} end
+   local content = f:read("*a")
+   f:close()
+   local all = decodeJson(content)
+   -- Filter keys by scope prefix.
+   if not scope then return all end
+   local result = {}
+   local prefix = scope .. "."
+   for k, v in pairs(all) do
+      if k:sub(1, #prefix) == prefix then
+         result[k:sub(#prefix + 1)] = v
+      end
+   end
+   return result
+end
+
+function M.SaveSettings(scope, data)
+   -- Load existing, merge scoped keys, write back.
+   local all = M.LoadSettings(nil)
+   -- Remove old keys for this scope.
+   local prefix = scope .. "."
+   for k in pairs(all) do
+      if k:sub(1, #prefix) == prefix then
+         all[k] = nil
+      end
+   end
+   -- Write new scoped keys.
+   for k, v in pairs(data) do
+      all[prefix .. k] = v
+   end
+   local f = io.open(settings_file, "w")
+   if f then
+      f:write(encodeJson(all))
+      f:close()
+   end
+end
+
 -- Path separator from Aseprite's API (works on all platforms).
 M.Sep = app.fs.pathSeparator
 

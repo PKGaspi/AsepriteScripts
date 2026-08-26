@@ -36,27 +36,32 @@ local Dirname = M.Dirname
 local Basename = M.Basename
 local RemoveExtension = M.RemoveExtension
 local MsgDialog = M.MsgDialog
+local LoadSettings = M.LoadSettings
+local SaveSettings = M.SaveSettings
+
+-- Load saved preferences.
+local prefs = LoadSettings("export_slices")
 
 -- Open main dialog.
 local dlg = Dialog("Export slices")
 dlg:file{
     id = "directory",
     label = "Output directory:",
-    filename = Sprite.filename,
+    filename = prefs.directory or Dirname(Sprite.filename),
     open = false
 }
 dlg:entry{
     id = "filename",
     label = "File name format:",
-    text = "{slicedata}" .. Sep .. "{slicename}"
+    text = prefs.filename or ("{slicedata}" .. Sep .. "{slicename}")
 }
 dlg:combobox{
     id = 'format',
     label = 'Export Format:',
-    option = 'png',
+    option = prefs.format or 'png',
     options = {'png', 'gif', 'jpg'}
 }
-dlg:slider{id = 'scale', label = 'Export Scale:', min = 1, max = 10, value = 1}
+dlg:slider{id = 'scale', label = 'Export Scale:', min = 1, max = 10, value = prefs.scale or 1}
 dlg:check{id = "save", label = "Save sprite:", selected = false}
 dlg:button{id = "ok", text = "Export"}
 dlg:button{id = "cancel", text = "Cancel"}
@@ -121,6 +126,14 @@ performExport()
 
 -- Save the original file if specified
 if dlg.data.save then Sprite:saveAs(dlg.data.directory) end
+
+-- Persist settings for next run.
+SaveSettings("export_slices", {
+    directory = dlg.data.directory,
+    filename = dlg.data.filename,
+    format = dlg.data.format,
+    scale = dlg.data.scale,
+})
 
 -- Success dialog.
 local dlg = MsgDialog("Success!", "Exported " .. #Sprite.slices .. " slices.")
