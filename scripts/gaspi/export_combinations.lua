@@ -14,8 +14,18 @@ About: Made by Gaspi. Commissioned by AnomuraGame.
 --]]
 
 -- Import main.
-local err = dofile("main.lua")
-if err ~= 0 then return err end
+local script_dir = debug.getinfo(1, "S").source:match("@?(.*)[/\\]")
+local M = dofile(script_dir .. "/main.lua")
+if type(M) ~= "table" then return M end
+
+local Sprite = M.Sprite
+local Sep = M.Sep
+local Dirname = M.Dirname
+local Basename = M.Basename
+local RemoveExtension = M.RemoveExtension
+local HideLayers = M.HideLayers
+local CopyTable = M.CopyTable
+local MsgDialog = M.MsgDialog
 
 -- Variable to keep track of number of current combination.
 local combination = 0
@@ -92,12 +102,16 @@ filename = filename:gsub("{spritename}",
 filename = filename .. '.' .. dlg.data.format
 
 
--- Finally, perform everything.
-Sprite:resize(Sprite.width * dlg.data.scale, Sprite.height * dlg.data.scale)
-local layers_visibility_data = HideLayers(Sprite)
-exportCombinations(Sprite, Sprite.layers, output_path .. filename)
-RestoreLayersVisibility(Sprite, layers_visibility_data)
-Sprite:resize(Sprite.width / dlg.data.scale, Sprite.height / dlg.data.scale)
+-- Work on a flat copy so the original sprite is never mutated (no undo entry).
+local function performExport()
+    local copy = Sprite:duplicate()
+    copy:resize(copy.width * dlg.data.scale, copy.height * dlg.data.scale)
+    HideLayers(copy)
+    exportCombinations(copy, copy.layers, output_path .. filename)
+    copy:close()
+end
+
+performExport()
 
 -- Save the original file if specified
 if dlg.data.save then Sprite:saveAs(dlg.data.directory) end

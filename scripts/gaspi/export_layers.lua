@@ -13,34 +13,36 @@ Further Contributors:
 --]]
 
 -- Import main.
-local err = dofile("main.lua")
-if err ~= 0 then return err end
+local script_dir = debug.getinfo(1, "S").source:match("@?(.*)[/\\]")
+local M = dofile(script_dir .. "/main.lua")
+if type(M) ~= "table" then return M end
+
+local Sprite = M.Sprite
+local Sep = M.Sep
+local Dirname = M.Dirname
+local Basename = M.Basename
+local RemoveExtension = M.RemoveExtension
+local HideLayers = M.HideLayers
+local MsgDialog = M.MsgDialog
 
 -- Variable to keep track of the number of layers exported.
 local n_layers = 0
 
 
--- Function to calculate the bounding box of the non-transparent pixels in a layer
+-- Function to calculate the bounding box of non-transparent content in a layer.
+-- Uses cel.bounds (already tight per-cel) instead of iterating every pixel.
+-- ponytail: O(cels) instead of O(width*height*frames). Upgrade path: none needed.
 local function calculateBoundingBox(layer)
     local minX, minY, maxX, maxY = nil, nil, nil, nil
     for _, cel in ipairs(layer.cels) do
-        local image = cel.image
-        local position = cel.position
-
-        for y = 0, image.height - 1 do
-            for x = 0, image.width - 1 do
-                if image:getPixel(x, y) ~= 0 then -- Non-transparent pixel
-                    local pixelX = position.x + x
-                    local pixelY = position.y + y
-                    if not minX or pixelX < minX then minX = pixelX end
-                    if not minY or pixelY < minY then minY = pixelY end
-                    if not maxX or pixelX > maxX then maxX = pixelX end
-                    if not maxY or pixelY > maxY then maxY = pixelY end
-                end
-            end
-        end
+        local b = cel.bounds
+        if not minX or b.x < minX then minX = b.x end
+        if not minY or b.y < minY then minY = b.y end
+        if not maxX or b.x + b.width > maxX then maxX = b.x + b.width end
+        if not maxY or b.y + b.height > maxY then maxY = b.y + b.height end
     end
-    return Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1)
+    if not minX then return nil end
+    return Rectangle(minX, minY, maxX - minX, maxY - minY)
 end
 
 -- Exports every layer individually.
@@ -109,6 +111,7 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
                 }
             elseif data.trim then -- Trim the layer
                 local boundingRect = calculateBoundingBox(layer)
+                if not boundingRect then goto continue end -- All-transparent layer, skip.
                 -- make a selection on the active layer
                 app.activeLayer = layer;
                 sprite.selection = Selection(boundingRect);
@@ -277,12 +280,16 @@ filename = filename:gsub("{spritename}",
                          RemoveExtension(Basename(Sprite.filename)))
 filename = filename:gsub("{groupseparator}", group_sep)
 
--- Finally, perform everything.
-Sprite:resize(Sprite.width * dlg.data.scale, Sprite.height * dlg.data.scale)
-local layers_visibility_data = HideLayers(Sprite)
-exportLayers(Sprite, Sprite, output_path .. filename, group_sep, dlg.data)
-RestoreLayersVisibility(Sprite, layers_visibility_data)
-Sprite:resize(Sprite.width / dlg.data.scale, Sprite.height / dlg.data.scale)
+-- Work on a flat copy so the original sprite is never mutated (no undo entry).
+local function performExport()
+    local copy = Sprite:duplicate()
+    copy:resize(copy.width * dlg.data.scale, copy.height * dlg.data.scale)
+    HideLayers(copy)
+    exportLayers(copy, copy, output_path .. filename, group_sep, dlg.data)
+    copy:close()
+end
+
+performExport()
 
 -- Save the original file if specified
 if dlg.data.save then Sprite:saveAs(dlg.data.directory) end
