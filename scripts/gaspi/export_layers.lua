@@ -277,12 +277,17 @@ filename = filename:gsub("{spritename}",
                          RemoveExtension(Basename(Sprite.filename)))
 filename = filename:gsub("{groupseparator}", group_sep)
 
--- Finally, perform everything.
-Sprite:resize(Sprite.width * dlg.data.scale, Sprite.height * dlg.data.scale)
-local layers_visibility_data = HideLayers(Sprite)
-exportLayers(Sprite, Sprite, output_path .. filename, group_sep, dlg.data)
-RestoreLayersVisibility(Sprite, layers_visibility_data)
-Sprite:resize(Sprite.width / dlg.data.scale, Sprite.height / dlg.data.scale)
+-- Finally, perform everything, maintaining 1 transaction
+local function exportLayersTransaction()
+    Sprite:resize(Sprite.width * dlg.data.scale, Sprite.height * dlg.data.scale)
+    local layers_visibility_data = HideLayers(Sprite)
+    exportLayers(Sprite, Sprite, output_path .. filename, group_sep, dlg.data)
+    RestoreLayersVisibility(Sprite, layers_visibility_data)
+    Sprite:resize(Sprite.width / dlg.data.scale, Sprite.height / dlg.data.scale)
+end
+app.transaction("Export Layers", exportLayersTransaction)
+-- Undo the transaction to revert history to before exporting
+app.undo() 
 
 -- Save the original file if specified
 if dlg.data.save then Sprite:saveAs(dlg.data.directory) end
