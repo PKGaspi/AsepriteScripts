@@ -15,10 +15,10 @@ About: Made by Gaspi. Commissioned by AnomuraGame.
 
 -- Import main.
 local script_dir = debug.getinfo(1, "S").source:match("@?(.*)[/\\]")
-local M = dofile(script_dir .. "/main.lua")
+local M = dofile(app.fs.joinPath(script_dir, "main.lua"))
 if type(M) ~= "table" then return M end
 
-local Sprite = M.Sprite
+local active_sprite = M.ActiveSprite
 local Sep = M.Sep
 local Dirname = M.Dirname
 local Basename = M.Basename
@@ -65,7 +65,7 @@ local dlg = Dialog("Export combinations")
 dlg:file{
     id = "directory",
     label = "Output directory:",
-    filename = prefs.directory or Dirname(Sprite.filename),
+    filename = prefs.directory or Dirname(active_sprite.filename),
     open = false
 }
 dlg:entry{
@@ -104,44 +104,35 @@ if not string.find(filename, "{combination}") then
 end
 
 filename = filename:gsub("{spritename}",
-                         RemoveExtension(Basename(Sprite.filename)))
+                         RemoveExtension(Basename(active_sprite.filename)))
 filename = filename .. '.' .. dlg.data.format
 
 
--- Work on a flat copy so the original sprite is never mutated (no undo entry).
+-- Work on a copy so the original sprite is never mutated (no undo entry).
 local function performExport()
-    -- Build set of originally-visible group names when filtering is requested.
-    local visible_set = nil
-    if dlg.data.only_visible then
-        visible_set = {}
-        for _, layer in ipairs(Sprite.layers) do
-            if layer.isVisible then visible_set[layer.name] = true end
-        end
-    end
-
-    local copy = Sprite:duplicate()
+    local copy = Sprite(active_sprite)
+    app.sprite = copy
     copy:resize(copy.width * dlg.data.scale, copy.height * dlg.data.scale)
     HideLayers(copy)
 
-    -- Filter copy layers to only originally-visible groups if requested.
-    local layers_to_export = copy.layers
-    if visible_set then
-        layers_to_export = {}
-        for _, layer in ipairs(copy.layers) do
-            if visible_set[layer.name] then
-                layers_to_export[#layers_to_export + 1] = layer
-            end
+    -- Only keep originally-visible groups if requested. HideLayers doesn't
+    -- change groups' visibility.
+    local layers_to_export = {}
+    for _, layer in ipairs(copy.layers) do
+        if not dlg.data.only_visible or layer.isVisible then
+            layers_to_export[#layers_to_export + 1] = layer
         end
     end
 
     exportCombinations(copy, layers_to_export, output_path .. filename)
     copy:close()
+    app.sprite = active_sprite
 end
 
 performExport()
 
 -- Save the original file if specified
-if dlg.data.save then Sprite:saveAs(dlg.data.directory) end
+if dlg.data.save then active_sprite:saveAs(active_sprite.filename) end
 
 -- Persist settings for next run.
 SaveSettings("export_combinations", {

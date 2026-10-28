@@ -27,10 +27,10 @@ Made by Gaspi. Commissioned by Imvested.
 
 -- Import main.
 local script_dir = debug.getinfo(1, "S").source:match("@?(.*)[/\\]")
-local M = dofile(script_dir .. "/main.lua")
+local M = dofile(app.fs.joinPath(script_dir, "main.lua"))
 if type(M) ~= "table" then return M end
 
-local Sprite = M.Sprite
+local active_sprite = M.ActiveSprite
 local Sep = M.Sep
 local Dirname = M.Dirname
 local Basename = M.Basename
@@ -47,7 +47,7 @@ local dlg = Dialog("Export slices")
 dlg:file{
     id = "directory",
     label = "Output directory:",
-    filename = prefs.directory or Dirname(Sprite.filename),
+    filename = prefs.directory or Dirname(active_sprite.filename),
     open = false
 }
 dlg:entry{
@@ -80,13 +80,13 @@ if output_path == nil then
 end
 
 filename = filename:gsub("{spritename}",
-                         RemoveExtension(Basename(Sprite.filename)))
+                         RemoveExtension(Basename(active_sprite.filename)))
 
 -- Export each slice by cropping a temporary copy (no undo entry on original).
 local function performExport()
     -- Count how many times a slice with the same name and group exist.
     local slice_count = {}
-    for _, slice in ipairs(Sprite.slices) do
+    for _, slice in ipairs(active_sprite.slices) do
         local slice_id = slice.data .. Sep .. slice.name
         if slice_count[slice_id] == nil then
             slice_count[slice_id] = 1
@@ -95,9 +95,12 @@ local function performExport()
         end
     end
 
-    for _, slice in ipairs(Sprite.slices) do
-        local copy = Sprite:duplicate()
-        copy:resize(copy.width * dlg.data.scale, copy.height * dlg.data.scale)
+    -- Scale once, then duplicate the scaled copy for each slice to crop it.
+    local scaled = Sprite(active_sprite)
+    scaled:resize(scaled.width * dlg.data.scale, scaled.height * dlg.data.scale)
+
+    for _, slice in ipairs(active_sprite.slices) do
+        local copy = Sprite(scaled)
 
         -- Scale the slice bounds to match the resized copy.
         local scaled_bounds = Rectangle(
@@ -120,12 +123,15 @@ local function performExport()
         copy:saveCopyAs(output_path .. slice_filename)
         copy:close()
     end
+
+    scaled:close()
+    app.sprite = active_sprite
 end
 
 performExport()
 
 -- Save the original file if specified
-if dlg.data.save then Sprite:saveAs(dlg.data.directory) end
+if dlg.data.save then active_sprite:saveAs(active_sprite.filename) end
 
 -- Persist settings for next run.
 SaveSettings("export_slices", {
@@ -136,7 +142,7 @@ SaveSettings("export_slices", {
 })
 
 -- Success dialog.
-local dlg = MsgDialog("Success!", "Exported " .. #Sprite.slices .. " slices.")
+local dlg = MsgDialog("Success!", "Exported " .. #active_sprite.slices .. " slices.")
 dlg:show()
 
 return 0

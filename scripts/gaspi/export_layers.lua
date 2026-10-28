@@ -14,10 +14,10 @@ Further Contributors:
 
 -- Import main.
 local script_dir = debug.getinfo(1, "S").source:match("@?(.*)[/\\]")
-local M = dofile(script_dir .. "/main.lua")
+local M = dofile(app.fs.joinPath(script_dir, "main.lua"))
 if type(M) ~= "table" then return M end
 
-local Sprite = M.Sprite
+local active_sprite = M.ActiveSprite
 local Sep = M.Sep
 local Dirname = M.Dirname
 local Basename = M.Basename
@@ -34,33 +34,44 @@ local prefs = LoadSettings("export_layers")
 local n_layers = 0
 
 
--- Function to calculate the bounding box of non-transparent content in a layer.
--- Uses cel.bounds (already tight per-cel) instead of iterating every pixel.
--- ponytail: O(cels) instead of O(width*height*frames). Upgrade path: none needed.
+-- Function to calculate the bounding box of the non-transparent pixels in a
+-- layer. Returns nil if the layer has no non-transparent pixels.
 local function calculateBoundingBox(layer)
-    local minX, minY, maxX, maxY = nil, nil, nil, nil
+    local boundingRect = nil
     for _, cel in ipairs(layer.cels) do
-        local b = cel.bounds
-        if not minX or b.x < minX then minX = b.x end
-        if not minY or b.y < minY then minY = b.y end
-        if not maxX or b.x + b.width > maxX then maxX = b.x + b.width end
-        if not maxY or b.y + b.height > maxY then maxY = b.y + b.height end
+        local image = cel.image
+        if not image:isEmpty() then
+            -- Shrunken bounds are relative to the image, offset them to sprite
+            -- coordinates.
+            local bounds = image:shrinkBounds()
+            bounds.x = bounds.x + cel.position.x
+            bounds.y = bounds.y + cel.position.y
+            if boundingRect == nil then
+                boundingRect = bounds
+            else
+                boundingRect = boundingRect:union(bounds)
+            end
+        end
     end
-    if not minX then return nil end
-    return Rectangle(minX, minY, maxX - minX, maxY - minY)
+    return boundingRect
 end
 
 -- Exports every layer individually.
-local function exportLayers(sprite, root_layer, filename, group_sep, data)
-    for _, layer in ipairs(root_layer.layers) do
+-- visibility is the data returned by HideLayers for root_layer, used to know
+-- which layers were originally visible.
+local function exportLayers(sprite, root_layer, filename, group_sep, data, visibility)
+    for i, layer in ipairs(root_layer.layers) do
         local prefix = data.exclusion_prefix or "_"
         -- Skip layer with specified prefix and prefix is not empty
         if data.exclude_prefix and prefix ~= "" and string.sub(layer.name, 1, #prefix) == prefix then
             goto continue
         end
-        -- Skip layers that were not originally visible when "only visible" is set.
-        if data.only_visible and data.visible_set and not data.visible_set[layer.name] then
-            goto continue
+        -- Skip layers that were not originally visible when "only visible" is
+        -- set. HideLayers doesn't change groups' visibility.
+        if data.only_visible then
+            local was_visible
+            if layer.isGroup then was_visible = layer.isVisible else was_visible = visibility[i] end
+            if not was_visible then goto continue end
         end
         local filename = filename
         if layer.isGroup then
@@ -69,7 +80,7 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
             layer.isVisible = true
             filename = filename:gsub("{layergroups}",
                                      layer.name .. group_sep .. "{layergroups}")
-            exportLayers(sprite, layer, filename, group_sep, data)
+            exportLayers(sprite, layer, filename, group_sep, data, visibility[i])
             layer.isVisible = previousVisibility
         else
             -- Ignore reference layers.
@@ -120,22 +131,26 @@ local function exportLayers(sprite, root_layer, filename, group_sep, data)
                 }
             elseif data.trim then -- Trim the layer
                 local boundingRect = calculateBoundingBox(layer)
-                if not boundingRect then goto continue end -- All-transparent layer, skip.
+                if not boundingRect then
+                    -- All-transparent layer, skip.
+                    layer.isVisible = false
+                    goto continue
+                end
                 -- make a selection on the active layer
-                app.activeLayer = layer;
+                app.layer = layer;
                 sprite.selection = Selection(boundingRect);
-                
+
                 -- create a new sprite from that selection
                 app.command.NewSpriteFromSelection()
-                
+
                 -- save it as png
                 app.command.SaveFile {
                     ui=false,
                     filename=filename
                 }
                 app.command.CloseFile()
-                
-                app.activeSprite = layer.sprite  -- Set the active sprite to the current layer's sprite
+
+                app.sprite = layer.sprite  -- Set the active sprite to the current layer's sprite
                 sprite.selection = Selection();
             else
                 sprite:saveCopyAs(filename)
@@ -152,7 +167,7 @@ local dlg = Dialog("Export layers")
 dlg:file{
     id = "directory",
     label = "Output directory:",
-    filename = prefs.directory or Dirname(Sprite.filename),
+    filename = prefs.directory or Dirname(active_sprite.filename),
     open = false
 }
 dlg:entry{
@@ -287,38 +302,24 @@ end
 
 local group_sep = dlg.data.group_sep
 filename = filename:gsub("{spritename}",
-                         RemoveExtension(Basename(Sprite.filename)))
+                         RemoveExtension(Basename(active_sprite.filename)))
 filename = filename:gsub("{groupseparator}", group_sep)
 
--- Work on a flat copy so the original sprite is never mutated (no undo entry).
+-- Work on a copy so the original sprite is never mutated (no undo entry).
 local function performExport()
-    -- Build set of originally-visible layer names from the unmodified sprite.
-    local visible_set = nil
-    if dlg.data.only_visible then
-        visible_set = {}
-        local function collectVisible(layers)
-            for _, layer in ipairs(layers) do
-                if layer.isVisible then visible_set[layer.name] = true end
-                if layer.isGroup then collectVisible(layer.layers) end
-            end
-        end
-        collectVisible(Sprite.layers)
-    end
-
-    local data = dlg.data
-    data.visible_set = visible_set
-
-    local copy = Sprite:duplicate()
+    local copy = Sprite(active_sprite)
+    app.sprite = copy
     copy:resize(copy.width * dlg.data.scale, copy.height * dlg.data.scale)
-    HideLayers(copy)
-    exportLayers(copy, copy, output_path .. filename, group_sep, data)
+    local visibility = HideLayers(copy)
+    exportLayers(copy, copy, output_path .. filename, group_sep, dlg.data, visibility)
     copy:close()
+    app.sprite = active_sprite
 end
 
 performExport()
 
 -- Save the original file if specified
-if dlg.data.save then Sprite:saveAs(dlg.data.directory) end
+if dlg.data.save then active_sprite:saveAs(active_sprite.filename) end
 
 -- Persist settings for next run.
 SaveSettings("export_layers", {

@@ -17,8 +17,12 @@ local M = {}
 
 -- Path handling — thin wrappers around Aseprite's app.fs API.
 
+-- Return the path to the dir containing a file (with a trailing separator), or
+-- nil if the given path has no directory part.
 function M.Dirname(str)
-   return app.fs.filePath(str) .. app.fs.pathSeparator
+   local dir = app.fs.filePath(str)
+   if dir == "" then return nil end
+   return dir .. app.fs.pathSeparator
 end
 
 function M.Basename(str)
@@ -32,14 +36,13 @@ end
 -- Sprite handling.
 
 -- Hides all layers and sub-layers inside a group, returning a list with all
--- initial states of each layer's visibility (including groups themselves).
+-- initial states of each layer's visibility. Groups keep their own visibility.
 function M.HideLayers(sprite)
    local data = {} -- Save visibility status of each layer here.
    for i,layer in ipairs(sprite.layers) do
       if layer.isGroup then
-         -- Save group visibility, then recurse into children.
-         data[i] = { groupVisible = layer.isVisible, children = M.HideLayers(layer) }
-         layer.isVisible = false
+         -- Recursive for groups.
+         data[i] = M.HideLayers(layer)
       else
          data[i] = layer.isVisible
          layer.isVisible = false
@@ -52,8 +55,8 @@ end
 function M.RestoreLayersVisibility(sprite, data)
    for i,layer in ipairs(sprite.layers) do
       if layer.isGroup then
-         layer.isVisible = data[i].groupVisible
-         M.RestoreLayersVisibility(layer, data[i].children)
+         -- Recursive for groups.
+         M.RestoreLayersVisibility(layer, data[i])
       else
          layer.isVisible = data[i]
       end
@@ -83,81 +86,31 @@ function M.CopyTable(original)
 end
 
 -- Settings persistence.
--- Stores preferences as a simple JSON file next to the scripts.
--- ponytail: hand-rolled flat JSON for tables with string/number/bool values only.
--- Upgrade path: use a full JSON lib if nested structures are ever needed.
+-- Each script stores its preferences in its own JSON file next to the scripts,
+-- using Aseprite's built-in json namespace (Aseprite v1.3-rc5+).
 
 local settings_dir = debug.getinfo(1, "S").source:match("@?(.*)[/\\]")
-local settings_file = settings_dir .. app.fs.pathSeparator .. "settings.json"
 
-local function encodeJson(tbl)
-   local parts = {}
-   for k, v in pairs(tbl) do
-      local val
-      if type(v) == "string" then
-         val = '"' .. v:gsub('\\', '\\\\'):gsub('"', '\\"') .. '"'
-      elseif type(v) == "boolean" then
-         val = v and "true" or "false"
-      else
-         val = tostring(v)
-      end
-      parts[#parts + 1] = '"' .. k .. '":' .. val
-   end
-   return "{" .. table.concat(parts, ",") .. "}"
-end
-
-local function decodeJson(str)
-   -- Minimal parser for flat {key: value} objects.
-   local tbl = {}
-   for k, v in str:gmatch('"([^"]+)"%s*:%s*(".-[^\\]"|%d+%.?%d*|true|false)') do
-      if v == "true" then
-         tbl[k] = true
-      elseif v == "false" then
-         tbl[k] = false
-      elseif v:sub(1,1) == '"' then
-         tbl[k] = v:sub(2, -2):gsub('\\"', '"'):gsub('\\\\', '\\')
-      else
-         tbl[k] = tonumber(v)
-      end
-   end
-   return tbl
+local function settingsFile(scope)
+   return app.fs.joinPath(settings_dir, scope .. ".settings.json")
 end
 
 function M.LoadSettings(scope)
-   local f = io.open(settings_file, "r")
+   if json == nil then return {} end
+   local f = io.open(settingsFile(scope), "r")
    if not f then return {} end
-   local content = f:read("*a")
+   local content = f:read("a")
    f:close()
-   local all = decodeJson(content)
-   -- Filter keys by scope prefix.
-   if not scope then return all end
-   local result = {}
-   local prefix = scope .. "."
-   for k, v in pairs(all) do
-      if k:sub(1, #prefix) == prefix then
-         result[k:sub(#prefix + 1)] = v
-      end
-   end
-   return result
+   local ok, settings = pcall(json.decode, content)
+   if not ok or settings == nil then return {} end
+   return settings
 end
 
-function M.SaveSettings(scope, data)
-   -- Load existing, merge scoped keys, write back.
-   local all = M.LoadSettings(nil)
-   -- Remove old keys for this scope.
-   local prefix = scope .. "."
-   for k in pairs(all) do
-      if k:sub(1, #prefix) == prefix then
-         all[k] = nil
-      end
-   end
-   -- Write new scoped keys.
-   for k, v in pairs(data) do
-      all[prefix .. k] = v
-   end
-   local f = io.open(settings_file, "w")
+function M.SaveSettings(scope, settings)
+   if json == nil then return end
+   local f = io.open(settingsFile(scope), "w")
    if f then
-      f:write(encodeJson(all))
+      f:write(json.encode(settings))
       f:close()
    end
 end
@@ -165,16 +118,16 @@ end
 -- Path separator from Aseprite's API (works on all platforms).
 M.Sep = app.fs.pathSeparator
 
--- Current sprite.
-M.Sprite = app.activeSprite
-if M.Sprite == nil then
+-- Current sprite. Not called "Sprite" to avoid shadowing the API's Sprite class.
+M.ActiveSprite = app.sprite
+if M.ActiveSprite == nil then
    -- Show error, no sprite active.
    local dlg = M.MsgDialog("Error", "No sprite is currently active. Please, open a sprite first and run again.")
    dlg:show()
    return 1
 end
 
-if app.fs.filePath(M.Sprite.filename) == "" then
+if app.fs.filePath(M.ActiveSprite.filename) == "" then
    -- Error, can't identify OS when the sprite isn't saved somewhere.
    local dlg = M.MsgDialog("Error", "Current sprite is not associated to a file. Please, save your sprite and run again.")
    dlg:show()
@@ -187,11 +140,11 @@ if debug.getinfo(2) == nil then
    local dlg = Dialog("Gaspi scripts")
    dlg:label{id = "msg", text = "What can I help you with?"}
    dlg:newrow()
-   dlg:button{id = "layers", text = "Export layers", onclick = function() dofile(script_dir .. "/export_layers.lua") end}
+   dlg:button{id = "layers", text = "Export layers", onclick = function() dofile(app.fs.joinPath(script_dir, "export_layers.lua")) end}
    dlg:newrow()
-   dlg:button{id = "slices", text = "Export slices", onclick = function() dofile(script_dir .. "/export_slices.lua") end}
+   dlg:button{id = "slices", text = "Export slices", onclick = function() dofile(app.fs.joinPath(script_dir, "export_slices.lua")) end}
    dlg:newrow()
-   dlg:button{id = "combinations", text = "Export combinations", onclick = function() dofile(script_dir .. "/export_combinations.lua") end}
+   dlg:button{id = "combinations", text = "Export combinations", onclick = function() dofile(app.fs.joinPath(script_dir, "export_combinations.lua")) end}
    dlg:newrow()
    dlg:button{id = "close", text = "Close", onclick = function() dlg:close() end }
    dlg:show()
