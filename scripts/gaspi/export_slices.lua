@@ -26,29 +26,44 @@ Made by Gaspi. Commissioned by Imvested.
 --]]
 
 -- Import main.
-local err = dofile("main.lua")
-if err ~= 0 then return err end
+local script_dir = debug.getinfo(1, "S").source:match("@?(.*)[/\\]")
+local M = dofile(app.fs.joinPath(script_dir, "main.lua"))
+if type(M) ~= "table" then return M end
+
+local active_sprite = M.active_sprite
+local sep = M.sep
+local dirname = M.dirname
+local basename = M.basename
+local remove_extension = M.remove_extension
+local replace_placeholder = M.replace_placeholder
+local save_sprite_copy = M.save_sprite_copy
+local msg_dialog = M.msg_dialog
+local load_settings = M.load_settings
+local save_settings = M.save_settings
+
+-- Load saved preferences.
+local prefs = load_settings("export_slices")
 
 -- Open main dialog.
 local dlg = Dialog("Export slices")
 dlg:file{
     id = "directory",
     label = "Output directory:",
-    filename = Sprite.filename,
+    filename = prefs.directory or dirname(active_sprite.filename),
     open = false
 }
 dlg:entry{
     id = "filename",
     label = "File name format:",
-    text = "{slicedata}" .. Sep .. "{slicename}"
+    text = prefs.filename or ("{slicedata}" .. sep .. "{slicename}")
 }
 dlg:combobox{
-    id = 'format',
-    label = 'Export Format:',
-    option = 'png',
-    options = {'png', 'gif', 'jpg'}
+    id = "format",
+    label = "Export Format:",
+    option = prefs.format or "png",
+    options = {"png", "gif", "jpg"}
 }
-dlg:slider{id = 'scale', label = 'Export Scale:', min = 1, max = 10, value = 1}
+dlg:slider{id = "scale", label = "Export Scale:", min = 1, max = 10, value = prefs.scale or 1}
 dlg:check{id = "save", label = "Save sprite:", selected = false}
 dlg:button{id = "ok", text = "Export"}
 dlg:button{id = "cancel", text = "Cancel"}
@@ -57,28 +72,24 @@ dlg:show()
 if not dlg.data.ok then return 0 end
 
 -- Get path and filename
-local output_path = Dirname(dlg.data.directory)
-local filename = dlg.data.filename .. "." .. dlg.data.format
+local output_path = dirname(dlg.data.directory)
+local filename = dlg.data.filename
 
 if output_path == nil then
-    local dlg = MsgDialog("Error", "No output directory was specified.")
-    dlg:show()
+    local msg_dlg = msg_dialog("Error", "No output directory was specified.")
+    msg_dlg:show()
     return 1
 end
 
-filename = filename:gsub("{spritename}",
-                         RemoveExtension(Basename(Sprite.filename)))
+filename = replace_placeholder(filename, "{spritename}",
+                               remove_extension(basename(active_sprite.filename)))
 
--- Maintain 1 transaction
-local function exportSlicesTransaction()
-    -- Save original bounds to restore later.
-    Sprite:resize(Sprite.width * dlg.data.scale, Sprite.height * dlg.data.scale)
-    local og_bounds = Sprite.bounds
-
+-- Export each slice by cropping a temporary copy (no undo entry on original).
+local function perform_export()
     -- Count how many times a slice with the same name and group exist.
     local slice_count = {}
-    for _, slice in ipairs(Sprite.slices) do
-        local slice_id = slice.data .. Sep .. slice.name
+    for _, slice in ipairs(active_sprite.slices) do
+        local slice_id = slice.data .. sep .. slice.name
         if slice_count[slice_id] == nil then
             slice_count[slice_id] = 1
         else
@@ -86,42 +97,55 @@ local function exportSlicesTransaction()
         end
     end
 
-    -- Export slices.
-    for _, slice in ipairs(Sprite.slices) do
-        -- Keep track of the origin offset.
-        og_bounds.x = og_bounds.x - slice.bounds.x
-        og_bounds.y = og_bounds.y - slice.bounds.y
+    -- Scale once, then duplicate the scaled copy for each slice to crop it.
+    local scaled = Sprite(active_sprite)
+    scaled:resize(scaled.width * dlg.data.scale, scaled.height * dlg.data.scale)
 
-        -- Crop the sprite to this slice's size and position.
-        Sprite:crop(slice.bounds)
+    for _, slice in ipairs(active_sprite.slices) do
+        local copy = Sprite(scaled)
 
-        -- Save the cropped sprite.
-        local slice_id = slice.data .. Sep .. slice.name
-        local slice_filename = filename:gsub("{slicename}", slice.name)
-        slice_filename = slice_filename:gsub("{slicedata}", slice.data)
+        -- Scale the slice bounds to match the resized copy.
+        local scaled_bounds = Rectangle(
+            slice.bounds.x * dlg.data.scale,
+            slice.bounds.y * dlg.data.scale,
+            slice.bounds.width * dlg.data.scale,
+            slice.bounds.height * dlg.data.scale
+        )
+        copy:crop(scaled_bounds)
+
+        local slice_id = slice.data .. sep .. slice.name
+        local slice_filename = replace_placeholder(filename, "{slicename}", slice.name)
+        slice_filename = replace_placeholder(slice_filename, "{slicedata}", slice.data)
         if slice_count[slice_id] > 1 then
             slice_filename = slice_filename .. "_" .. slice_count[slice_id]
         end
+        slice_filename = slice_filename .. "." .. dlg.data.format
 
-        -- Create output dir in case it doesn't exist.
-        os.execute("mkdir \"" .. Dirname(output_path .. slice_filename) .. "\"")
+        app.fs.makeAllDirectories(dirname(output_path .. slice_filename))
         slice_count[slice_id] = slice_count[slice_id] - 1
-        Sprite:saveCopyAs(output_path .. slice_filename)
+        save_sprite_copy(copy, output_path .. slice_filename)
+        copy:close()
     end
 
-    -- Restore original bounds.
-    Sprite:crop(og_bounds)
-    Sprite:resize(Sprite.width / dlg.data.scale, Sprite.height / dlg.data.scale)
+    scaled:close()
+    app.sprite = active_sprite
 end
-app.transaction("Export Slices", exportSlicesTransaction)
--- Undo the transaction to revert history to before exporting
-app.undo() 
+
+perform_export()
 
 -- Save the original file if specified
-if dlg.data.save then Sprite:saveAs(dlg.data.directory) end
+if dlg.data.save then active_sprite:saveAs(active_sprite.filename) end
+
+-- Persist settings for next run.
+save_settings("export_slices", {
+    directory = dlg.data.directory,
+    filename = dlg.data.filename,
+    format = dlg.data.format,
+    scale = dlg.data.scale,
+})
 
 -- Success dialog.
-local dlg = MsgDialog("Success!", "Exported " .. #Sprite.slices .. " slices.")
-dlg:show()
+local msg_dlg = msg_dialog("Success!", "Exported " .. #active_sprite.slices .. " slices.")
+msg_dlg:show()
 
 return 0
