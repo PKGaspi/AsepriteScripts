@@ -19,70 +19,70 @@ local M = {}
 
 -- Return the path to the dir containing a file (with a trailing separator), or
 -- nil if the given path has no directory part.
-function M.Dirname(str)
-   local dir = app.fs.filePath(str)
-   if dir == "" then return nil end
-   return dir .. app.fs.pathSeparator
+function M.dirname(str)
+    local dir = app.fs.filePath(str)
+    if dir == "" then return nil end
+    return dir .. app.fs.pathSeparator
 end
 
-function M.Basename(str)
-   return app.fs.fileName(str)
+function M.basename(str)
+    return app.fs.fileName(str)
 end
 
-function M.RemoveExtension(str)
-   return app.fs.fileTitle(str)
+function M.remove_extension(str)
+    return app.fs.fileTitle(str)
 end
 
 -- Sprite handling.
 
 -- Hides all layers and sub-layers inside a group, returning a list with all
 -- initial states of each layer's visibility. Groups keep their own visibility.
-function M.HideLayers(sprite)
-   local data = {} -- Save visibility status of each layer here.
-   for i,layer in ipairs(sprite.layers) do
-      if layer.isGroup then
-         -- Recursive for groups.
-         data[i] = M.HideLayers(layer)
-      else
-         data[i] = layer.isVisible
-         layer.isVisible = false
-      end
-   end
-   return data
+function M.hide_layers(sprite)
+    local data = {} -- Save visibility status of each layer here.
+    for i,layer in ipairs(sprite.layers) do
+        if layer.isGroup then
+            -- Recursive for groups.
+            data[i] = M.hide_layers(layer)
+        else
+            data[i] = layer.isVisible
+            layer.isVisible = false
+        end
+    end
+    return data
 end
 
 -- Restore layers visibility.
-function M.RestoreLayersVisibility(sprite, data)
-   for i,layer in ipairs(sprite.layers) do
-      if layer.isGroup then
-         -- Recursive for groups.
-         M.RestoreLayersVisibility(layer, data[i])
-      else
-         layer.isVisible = data[i]
-      end
-   end
+function M.restore_layers_visibility(sprite, data)
+    for i,layer in ipairs(sprite.layers) do
+        if layer.isGroup then
+            -- Recursive for groups.
+            M.restore_layers_visibility(layer, data[i])
+        else
+            layer.isVisible = data[i]
+        end
+    end
 end
 
 -- Dialog
-function M.MsgDialog(title, msg)
-   local dlg = Dialog(title)
-   dlg:label{
-      id = "msg",
-      text = msg
-   }
-   dlg:newrow()
-   dlg:button{id = "close", text = "Close", onclick = function() dlg:close() end }
-   return dlg
+function M.msg_dialog(title, msg)
+    local dlg = Dialog(title)
+    dlg:label{
+        id = "msg",
+        text = msg
+    }
+    dlg:newrow()
+    dlg:button{id = "close", text = "Close", onclick = function() dlg:close() end }
+    return dlg
 end
 
 -- Other
 
-function M.CopyTable(original)
-   local copy = {}
-   for i, value in ipairs(original) do
+function M.copy_table(original)
+    local copy = {}
+    for i, value in ipairs(original) do
        copy[i] = value
-   end
-   return copy
+    end
+    return copy
 end
 
 -- Settings persistence.
@@ -91,63 +91,63 @@ end
 
 local settings_dir = debug.getinfo(1, "S").source:match("@?(.*)[/\\]")
 
-local function settingsFile(scope)
-   return app.fs.joinPath(settings_dir, scope .. ".settings.json")
+local function settings_file(scope)
+    return app.fs.joinPath(settings_dir, scope .. ".settings.json")
 end
 
-function M.LoadSettings(scope)
-   if json == nil then return {} end
-   local f = io.open(settingsFile(scope), "r")
-   if not f then return {} end
-   local content = f:read("a")
-   f:close()
-   local ok, settings = pcall(json.decode, content)
-   if not ok or settings == nil then return {} end
-   return settings
+function M.load_settings(scope)
+    if json == nil then return {} end
+    local f = io.open(settings_file(scope), "r")
+    if not f then return {} end
+    local content = f:read("a")
+    f:close()
+    local ok, settings = pcall(json.decode, content)
+    if not ok or settings == nil then return {} end
+    return settings
 end
 
-function M.SaveSettings(scope, settings)
-   if json == nil then return end
-   local f = io.open(settingsFile(scope), "w")
-   if f then
-      f:write(json.encode(settings))
-      f:close()
-   end
+function M.save_settings(scope, settings)
+    if json == nil then return end
+    local f = io.open(settings_file(scope), "w")
+    if f then
+        f:write(json.encode(settings))
+        f:close()
+    end
 end
 
 -- Path separator from Aseprite's API (works on all platforms).
-M.Sep = app.fs.pathSeparator
+M.sep = app.fs.pathSeparator
 
 -- Current sprite. Not called "Sprite" to avoid shadowing the API's Sprite class.
-M.ActiveSprite = app.sprite
-if M.ActiveSprite == nil then
-   -- Show error, no sprite active.
-   local dlg = M.MsgDialog("Error", "No sprite is currently active. Please, open a sprite first and run again.")
-   dlg:show()
-   return 1
+M.active_sprite = app.sprite
+if M.active_sprite == nil then
+    -- Show error, no sprite active.
+    local dlg = M.msg_dialog("Error", "No sprite is currently active. Please, open a sprite first and run again.")
+    dlg:show()
+    return 1
 end
 
-if app.fs.filePath(M.ActiveSprite.filename) == "" then
-   -- Error, can't identify OS when the sprite isn't saved somewhere.
-   local dlg = M.MsgDialog("Error", "Current sprite is not associated to a file. Please, save your sprite and run again.")
-   dlg:show()
-   return 1
+if app.fs.filePath(M.active_sprite.filename) == "" then
+    -- Error, can't identify OS when the sprite isn't saved somewhere.
+    local dlg = M.msg_dialog("Error", "Current sprite is not associated to a file. Please, save your sprite and run again.")
+    dlg:show()
+    return 1
 end
 
 -- Check if this is being run directly.
 if debug.getinfo(2) == nil then
-   local script_dir = debug.getinfo(1, "S").source:match("@?(.*)[/\\]")
-   local dlg = Dialog("Gaspi scripts")
-   dlg:label{id = "msg", text = "What can I help you with?"}
-   dlg:newrow()
-   dlg:button{id = "layers", text = "Export layers", onclick = function() dofile(app.fs.joinPath(script_dir, "export_layers.lua")) end}
-   dlg:newrow()
-   dlg:button{id = "slices", text = "Export slices", onclick = function() dofile(app.fs.joinPath(script_dir, "export_slices.lua")) end}
-   dlg:newrow()
-   dlg:button{id = "combinations", text = "Export combinations", onclick = function() dofile(app.fs.joinPath(script_dir, "export_combinations.lua")) end}
-   dlg:newrow()
-   dlg:button{id = "close", text = "Close", onclick = function() dlg:close() end }
-   dlg:show()
+    local script_dir = debug.getinfo(1, "S").source:match("@?(.*)[/\\]")
+    local dlg = Dialog("Gaspi scripts")
+    dlg:label{id = "msg", text = "What can I help you with?"}
+    dlg:newrow()
+    dlg:button{id = "layers", text = "Export layers", onclick = function() dofile(app.fs.joinPath(script_dir, "export_layers.lua")) end}
+    dlg:newrow()
+    dlg:button{id = "slices", text = "Export slices", onclick = function() dofile(app.fs.joinPath(script_dir, "export_slices.lua")) end}
+    dlg:newrow()
+    dlg:button{id = "combinations", text = "Export combinations", onclick = function() dofile(app.fs.joinPath(script_dir, "export_combinations.lua")) end}
+    dlg:newrow()
+    dlg:button{id = "close", text = "Close", onclick = function() dlg:close() end }
+    dlg:show()
 end
 
 return M

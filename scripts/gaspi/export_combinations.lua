@@ -18,25 +18,25 @@ local script_dir = debug.getinfo(1, "S").source:match("@?(.*)[/\\]")
 local M = dofile(app.fs.joinPath(script_dir, "main.lua"))
 if type(M) ~= "table" then return M end
 
-local active_sprite = M.ActiveSprite
-local Sep = M.Sep
-local Dirname = M.Dirname
-local Basename = M.Basename
-local RemoveExtension = M.RemoveExtension
-local HideLayers = M.HideLayers
-local MsgDialog = M.MsgDialog
-local LoadSettings = M.LoadSettings
-local SaveSettings = M.SaveSettings
+local active_sprite = M.active_sprite
+local sep = M.sep
+local dirname = M.dirname
+local basename = M.basename
+local remove_extension = M.remove_extension
+local hide_layers = M.hide_layers
+local msg_dialog = M.msg_dialog
+local load_settings = M.load_settings
+local save_settings = M.save_settings
 
 -- Load saved preferences.
-local prefs = LoadSettings("export_combinations")
+local prefs = load_settings("export_combinations")
 
 -- Variable to keep track of number of current combination.
 local combination = 0
 
 -- Returns the top-level groups of the sprite that take part in the
 -- combinations. Isolated layers and empty groups are ignored.
-local function collectGroups(sprite, only_visible)
+local function collect_groups(sprite, only_visible)
     local groups = {}
     for _, layer in ipairs(sprite.layers) do
         if layer.isGroup and #layer.layers > 0
@@ -51,7 +51,7 @@ end
 -- sprite with a name ending in a number (e.g. "_1.png") as a numbered sequence
 -- that overwrites the next combinations, so for formats without animation
 -- each frame is rendered and saved on its own as "<title>_<frame>.<ext>".
-local function saveCombination(sprite, path)
+local function save_combination(sprite, path)
     if #sprite.frames == 1 or app.fs.fileExtension(path) == "gif" then
         sprite:saveCopyAs(path)
         return
@@ -71,18 +71,18 @@ local function saveCombination(sprite, path)
 end
 
 -- Exports every combination of one layer per group, from groups[i] onwards.
-local function exportCombinations(sprite, groups, i, output_path)
+local function export_combinations(sprite, groups, i, output_path)
     if i > #groups then
         combination = combination + 1
         local combination_path = output_path:gsub("{combination}", combination)
-        app.fs.makeAllDirectories(Dirname(combination_path))
-        saveCombination(sprite, combination_path)
+        app.fs.makeAllDirectories(dirname(combination_path))
+        save_combination(sprite, combination_path)
         return
     end
 
     for _, layer in ipairs(groups[i].layers) do
         layer.isVisible = true
-        exportCombinations(sprite, groups, i + 1, output_path)
+        export_combinations(sprite, groups, i + 1, output_path)
         layer.isVisible = false
     end
 end
@@ -92,7 +92,7 @@ local dlg = Dialog("Export combinations")
 dlg:file{
     id = "directory",
     label = "Output directory:",
-    filename = prefs.directory or Dirname(active_sprite.filename),
+    filename = prefs.directory or dirname(active_sprite.filename),
     open = false
 }
 dlg:entry{
@@ -101,12 +101,12 @@ dlg:entry{
     text = prefs.filename or "{spritename}_{combination}"
 }
 dlg:combobox{
-    id = 'format',
-    label = 'Export Format:',
-    option = prefs.format or 'png',
-    options = {'png', 'gif', 'jpg'}
+    id = "format",
+    label = "Export Format:",
+    option = prefs.format or "png",
+    options = {"png", "gif", "jpg"}
 }
-dlg:slider{id = 'scale', label = 'Export Scale:', min = 1, max = 10, value = prefs.scale or 1}
+dlg:slider{id = "scale", label = "Export Scale:", min = 1, max = 10, value = prefs.scale or 1}
 dlg:check{id = "only_visible", label = "Only visible groups:", selected = false}
 dlg:check{id = "save", label = "Save sprite:", selected = false}
 dlg:button{id = "ok", text = "Export"}
@@ -116,12 +116,12 @@ dlg:show()
 if not dlg.data.ok then return 0 end
 
 -- Get path and filename
-local output_path = Dirname(dlg.data.directory)
+local output_path = dirname(dlg.data.directory)
 local filename = dlg.data.filename
 
 if output_path == nil then
-    local dlg = MsgDialog("Error", "No output directory was specified.")
-    dlg:show()
+    local msg_dlg = msg_dialog("Error", "No output directory was specified.")
+    msg_dlg:show()
     return 1
 end
 
@@ -131,41 +131,41 @@ if not string.find(filename, "{combination}") then
 end
 
 filename = filename:gsub("{spritename}",
-                         RemoveExtension(Basename(active_sprite.filename)))
-filename = filename .. '.' .. dlg.data.format
+                         remove_extension(basename(active_sprite.filename)))
+filename = filename .. "." .. dlg.data.format
 
-if #collectGroups(active_sprite, dlg.data.only_visible) == 0 then
+if #collect_groups(active_sprite, dlg.data.only_visible) == 0 then
     local msg = "No layer groups with layers were found in the sprite."
     if dlg.data.only_visible then
         msg = "No visible layer groups with layers were found in the sprite."
     end
-    local dlg = MsgDialog("Error", msg)
-    dlg:show()
+    local msg_dlg = msg_dialog("Error", msg)
+    msg_dlg:show()
     return 1
 end
 
 -- Work on a copy so the original sprite is never mutated (no undo entry).
-local function performExport()
+local function perform_export()
     local copy = Sprite(active_sprite)
     app.sprite = copy
     copy:resize(copy.width * dlg.data.scale, copy.height * dlg.data.scale)
-    HideLayers(copy)
+    hide_layers(copy)
 
-    -- HideLayers doesn't change groups' visibility, so "only visible" still
+    -- hide_layers doesn't change groups' visibility, so "only visible" still
     -- works on the copy.
-    local groups = collectGroups(copy, dlg.data.only_visible)
-    exportCombinations(copy, groups, 1, output_path .. filename)
+    local groups = collect_groups(copy, dlg.data.only_visible)
+    export_combinations(copy, groups, 1, output_path .. filename)
     copy:close()
     app.sprite = active_sprite
 end
 
-performExport()
+perform_export()
 
 -- Save the original file if specified
 if dlg.data.save then active_sprite:saveAs(active_sprite.filename) end
 
 -- Persist settings for next run.
-SaveSettings("export_combinations", {
+save_settings("export_combinations", {
     directory = dlg.data.directory,
     filename = dlg.data.filename,
     format = dlg.data.format,
@@ -173,8 +173,8 @@ SaveSettings("export_combinations", {
 })
 
 -- Success dialog.
-local dlg =
-    MsgDialog("Success!", "Exported " .. combination .. " combinations.")
-dlg:show()
+local msg_dlg =
+    msg_dialog("Success!", "Exported " .. combination .. " combinations.")
+msg_dlg:show()
 
 return 0
