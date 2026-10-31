@@ -23,6 +23,8 @@ local dirname = M.dirname
 local basename = M.basename
 local remove_extension = M.remove_extension
 local hide_layers = M.hide_layers
+local replace_placeholder = M.replace_placeholder
+local save_sprite_copy = M.save_sprite_copy
 local msg_dialog = M.msg_dialog
 local load_settings = M.load_settings
 local save_settings = M.save_settings
@@ -78,8 +80,8 @@ local function export_layers(sprite, root_layer, filename, group_sep, data, visi
             -- Recursive for groups.
             local previous_visibility = layer.isVisible
             layer.isVisible = true
-            filename = filename:gsub("{layergroups}",
-                                     layer.name .. group_sep .. "{layergroups}")
+            filename = replace_placeholder(filename, "{layergroups}",
+                                           layer.name .. group_sep .. "{layergroups}")
             export_layers(sprite, layer, filename, group_sep, data, visibility[i])
             layer.isVisible = previous_visibility
         else
@@ -90,8 +92,8 @@ local function export_layers(sprite, root_layer, filename, group_sep, data, visi
 
             -- Individual layer. Export it.
             layer.isVisible = true
-            filename = filename:gsub("{layergroups}", "")
-            filename = filename:gsub("{layername}", layer.name)
+            filename = replace_placeholder(filename, "{layergroups}", "")
+            filename = replace_placeholder(filename, "{layername}", layer.name)
             app.fs.makeAllDirectories(dirname(filename))
             if data.spritesheet then
                 local sheet_type=SpriteSheetType.HORIZONTAL
@@ -153,7 +155,7 @@ local function export_layers(sprite, root_layer, filename, group_sep, data, visi
                 app.sprite = layer.sprite  -- Set the active sprite to the current layer's sprite
                 sprite.selection = Selection()
             else
-                sprite:saveCopyAs(filename)
+                save_sprite_copy(sprite, filename)
             end
             layer.isVisible = false
             n_layers = n_layers + 1
@@ -301,9 +303,9 @@ if output_path == nil then
 end
 
 local group_sep = dlg.data.group_sep
-filename = filename:gsub("{spritename}",
-                         remove_extension(basename(active_sprite.filename)))
-filename = filename:gsub("{groupseparator}", group_sep)
+filename = replace_placeholder(filename, "{spritename}",
+                               remove_extension(basename(active_sprite.filename)))
+filename = replace_placeholder(filename, "{groupseparator}", group_sep)
 
 -- Work on a copy so the original sprite is never mutated (no undo entry).
 local function perform_export()

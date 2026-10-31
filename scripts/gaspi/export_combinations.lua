@@ -19,11 +19,11 @@ local M = dofile(app.fs.joinPath(script_dir, "main.lua"))
 if type(M) ~= "table" then return M end
 
 local active_sprite = M.active_sprite
-local sep = M.sep
 local dirname = M.dirname
 local basename = M.basename
 local remove_extension = M.remove_extension
-local hide_layers = M.hide_layers
+local replace_placeholder = M.replace_placeholder
+local save_sprite_copy = M.save_sprite_copy
 local msg_dialog = M.msg_dialog
 local load_settings = M.load_settings
 local save_settings = M.save_settings
@@ -47,26 +47,17 @@ local function collect_groups(sprite, only_visible)
     return groups
 end
 
--- Saves the current state of the sprite to path. Aseprite saves a multi-frame
--- sprite with a name ending in a number (e.g. "_1.png") as a numbered sequence
--- that overwrites the next combinations, so for formats without animation
--- each frame is rendered and saved on its own as "<title>_<frame>.<ext>".
-local function save_combination(sprite, path)
-    if #sprite.frames == 1 or app.fs.fileExtension(path) == "gif" then
-        sprite:saveCopyAs(path)
-        return
+-- Hides isolated top-level layers and every layer directly inside the
+-- combination groups. Sub-groups keep their contents' visibility, so each
+-- sub-group is exported as a whole when it's its group's chosen layer.
+local function hide_combination_layers(sprite, groups)
+    for _, layer in ipairs(sprite.layers) do
+        if not layer.isGroup then layer.isVisible = false end
     end
-
-    local path_title = app.fs.filePathAndTitle(path)
-    local extension = app.fs.fileExtension(path)
-    local image = Image(sprite.spec)
-    for frame_number = 1, #sprite.frames do
-        image:clear()
-        image:drawSprite(sprite, frame_number)
-        image:saveAs{
-            filename = path_title .. "_" .. frame_number .. "." .. extension,
-            palette = sprite.palettes[1]
-        }
+    for _, group in ipairs(groups) do
+        for _, layer in ipairs(group.layers) do
+            layer.isVisible = false
+        end
     end
 end
 
@@ -74,9 +65,9 @@ end
 local function export_combinations(sprite, groups, i, output_path)
     if i > #groups then
         combination = combination + 1
-        local combination_path = output_path:gsub("{combination}", combination)
+        local combination_path = replace_placeholder(output_path, "{combination}", combination)
         app.fs.makeAllDirectories(dirname(combination_path))
-        save_combination(sprite, combination_path)
+        save_sprite_copy(sprite, combination_path)
         return
     end
 
@@ -110,7 +101,7 @@ dlg:slider{id = "scale", label = "Export Scale:", min = 1, max = 10, value = pre
 dlg:check{id = "only_visible", label = "Only visible groups:", selected = false}
 dlg:check{id = "save", label = "Save sprite:", selected = false}
 dlg:button{id = "ok", text = "Export"}
-dlg:button{id = "cancel", text = "Cancel", onclick = function() dlg:close() end}
+dlg:button{id = "cancel", text = "Cancel"}
 dlg:show()
 
 if not dlg.data.ok then return 0 end
@@ -125,13 +116,13 @@ if output_path == nil then
     return 1
 end
 
-if not string.find(filename, "{combination}") then
+if not filename:find("{combination}", 1, true) then
     -- combination format is mandatory. Append to string.
     filename = filename .. "_{combination}"
 end
 
-filename = filename:gsub("{spritename}",
-                         remove_extension(basename(active_sprite.filename)))
+filename = replace_placeholder(filename, "{spritename}",
+                               remove_extension(basename(active_sprite.filename)))
 filename = filename .. "." .. dlg.data.format
 
 if #collect_groups(active_sprite, dlg.data.only_visible) == 0 then
@@ -149,11 +140,8 @@ local function perform_export()
     local copy = Sprite(active_sprite)
     app.sprite = copy
     copy:resize(copy.width * dlg.data.scale, copy.height * dlg.data.scale)
-    hide_layers(copy)
-
-    -- hide_layers doesn't change groups' visibility, so "only visible" still
-    -- works on the copy.
     local groups = collect_groups(copy, dlg.data.only_visible)
+    hide_combination_layers(copy, groups)
     export_combinations(copy, groups, 1, output_path .. filename)
     copy:close()
     app.sprite = active_sprite

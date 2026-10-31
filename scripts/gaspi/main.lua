@@ -33,6 +33,14 @@ function M.remove_extension(str)
     return app.fs.fileTitle(str)
 end
 
+-- Replaces every occurrence of placeholder (e.g. "{layername}") in str with
+-- value. "%" in value is escaped so names like "50%" can't break gsub.
+function M.replace_placeholder(str, placeholder, value)
+    local escaped_value = tostring(value):gsub("%%", "%%%%")
+    local result = str:gsub(placeholder, escaped_value)
+    return result
+end
+
 -- Sprite handling.
 
 -- Hides all layers and sub-layers inside a group, returning a list with all
@@ -51,15 +59,27 @@ function M.hide_layers(sprite)
     return data
 end
 
--- Restore layers visibility.
-function M.restore_layers_visibility(sprite, data)
-    for i,layer in ipairs(sprite.layers) do
-        if layer.isGroup then
-            -- Recursive for groups.
-            M.restore_layers_visibility(layer, data[i])
-        else
-            layer.isVisible = data[i]
-        end
+-- Saves a copy of the current state of the sprite to path. Aseprite saves a
+-- multi-frame sprite as a numbered sequence of files when the format has no
+-- animation, which can overwrite other exports whose names end in a number
+-- (e.g. "_1.png"). So for those formats each frame is rendered and saved on its
+-- own as "<title>_<frame>.<ext>".
+function M.save_sprite_copy(sprite, path)
+    if #sprite.frames == 1 or app.fs.fileExtension(path) == "gif" then
+        sprite:saveCopyAs(path)
+        return
+    end
+
+    local path_title = app.fs.filePathAndTitle(path)
+    local extension = app.fs.fileExtension(path)
+    local image = Image(sprite.spec)
+    for frame_number = 1, #sprite.frames do
+        image:clear()
+        image:drawSprite(sprite, frame_number)
+        image:saveAs{
+            filename = path_title .. "_" .. frame_number .. "." .. extension,
+            palette = sprite.palettes[1]
+        }
     end
 end
 
@@ -73,16 +93,6 @@ function M.msg_dialog(title, msg)
     dlg:newrow()
     dlg:button{id = "close", text = "Close", onclick = function() dlg:close() end }
     return dlg
-end
-
--- Other
-
-function M.copy_table(original)
-    local copy = {}
-    for i, value in ipairs(original) do
-       copy[i] = value
-    end
-    return copy
 end
 
 -- Settings persistence.

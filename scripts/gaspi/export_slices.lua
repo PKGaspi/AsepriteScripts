@@ -35,6 +35,8 @@ local sep = M.sep
 local dirname = M.dirname
 local basename = M.basename
 local remove_extension = M.remove_extension
+local replace_placeholder = M.replace_placeholder
+local save_sprite_copy = M.save_sprite_copy
 local msg_dialog = M.msg_dialog
 local load_settings = M.load_settings
 local save_settings = M.save_settings
@@ -71,7 +73,7 @@ if not dlg.data.ok then return 0 end
 
 -- Get path and filename
 local output_path = dirname(dlg.data.directory)
-local filename = dlg.data.filename .. "." .. dlg.data.format
+local filename = dlg.data.filename
 
 if output_path == nil then
     local msg_dlg = msg_dialog("Error", "No output directory was specified.")
@@ -79,8 +81,8 @@ if output_path == nil then
     return 1
 end
 
-filename = filename:gsub("{spritename}",
-                         remove_extension(basename(active_sprite.filename)))
+filename = replace_placeholder(filename, "{spritename}",
+                               remove_extension(basename(active_sprite.filename)))
 
 -- Export each slice by cropping a temporary copy (no undo entry on original).
 local function perform_export()
@@ -112,15 +114,16 @@ local function perform_export()
         copy:crop(scaled_bounds)
 
         local slice_id = slice.data .. sep .. slice.name
-        local slice_filename = filename:gsub("{slicename}", slice.name)
-        slice_filename = slice_filename:gsub("{slicedata}", slice.data)
+        local slice_filename = replace_placeholder(filename, "{slicename}", slice.name)
+        slice_filename = replace_placeholder(slice_filename, "{slicedata}", slice.data)
         if slice_count[slice_id] > 1 then
             slice_filename = slice_filename .. "_" .. slice_count[slice_id]
         end
+        slice_filename = slice_filename .. "." .. dlg.data.format
 
         app.fs.makeAllDirectories(dirname(output_path .. slice_filename))
         slice_count[slice_id] = slice_count[slice_id] - 1
-        copy:saveCopyAs(output_path .. slice_filename)
+        save_sprite_copy(copy, output_path .. slice_filename)
         copy:close()
     end
 
